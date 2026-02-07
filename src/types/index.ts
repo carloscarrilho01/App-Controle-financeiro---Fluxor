@@ -47,6 +47,7 @@ export interface Category {
   color: string;
   created_at: string;
   parent_id?: string; // Para subcategorias
+  is_default?: boolean; // Categorias padrão não podem ser excluídas
   is_archived?: boolean;
 }
 
@@ -229,6 +230,7 @@ export interface Debt {
   current_balance: number;
   interest_rate: number; // Taxa de juros mensal
   monthly_payment: number;
+  due_day?: number; // Dia do vencimento
   start_date: string;
   end_date?: string;
   total_installments?: number;
@@ -259,6 +261,24 @@ export interface Tag {
   name: string;
   color: string;
   created_at: string;
+}
+
+// Template de Transação
+export interface TransactionTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  category_id: string;
+  account_id: string;
+  icon?: string;
+  color?: string;
+  usage_count: number;
+  last_used_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Tipos para estatísticas e relatórios

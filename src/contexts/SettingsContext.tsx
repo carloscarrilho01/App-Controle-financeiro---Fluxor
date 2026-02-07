@@ -11,6 +11,7 @@ interface AppSettings {
   notificationSettings: NotificationSettings;
   quickActions: string[];
   defaultAccountId?: string;
+  hasCompletedOnboarding: boolean;
 }
 
 interface SettingsContextType {
@@ -20,6 +21,8 @@ interface SettingsContextType {
   authenticateWithBiometric: () => Promise<boolean>;
   isAuthenticated: boolean;
   setAuthenticated: (value: boolean) => void;
+  hasCompletedOnboarding: boolean;
+  completeOnboarding: () => Promise<void>;
 }
 
 const defaultSettings: AppSettings = {
@@ -39,16 +42,19 @@ const defaultSettings: AppSettings = {
     unusual_expense_threshold: 500,
   },
   quickActions: ['add_expense', 'add_income', 'view_bills'],
+  hasCompletedOnboarding: false,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const SETTINGS_STORAGE_KEY = '@financeapp:settings';
+const ONBOARDING_KEY = '@financeapp:onboarding_completed';
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +67,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(compatible && enrolled);
+
+      // Verificar se o onboarding foi completado
+      const onboardingCompleted = await AsyncStorage.getItem(ONBOARDING_KEY);
+      setHasCompletedOnboarding(onboardingCompleted === 'true');
 
       // Carregar configurações salvas
       const savedSettings = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -91,6 +101,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       throw error;
+    }
+  };
+
+  const completeOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      setHasCompletedOnboarding(true);
+    } catch (error) {
+      console.error('Erro ao salvar status do onboarding:', error);
     }
   };
 
@@ -127,6 +146,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         authenticateWithBiometric,
         isAuthenticated,
         setAuthenticated,
+        hasCompletedOnboarding,
+        completeOnboarding,
       }}
     >
       {children}

@@ -24,14 +24,48 @@ export function NotificationsScreen({ navigation }: any) {
     notifications,
     notificationSettings,
     loading,
+    hasPermission,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     updateSettings,
     refresh,
+    requestPermissions,
+    sendInstantPush,
+    getScheduledPushNotifications,
   } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [scheduledCount, setScheduledCount] = useState(0);
+
+  // Carregar contagem de notificações agendadas
+  React.useEffect(() => {
+    const loadScheduled = async () => {
+      const scheduled = await getScheduledPushNotifications();
+      setScheduledCount(scheduled.length);
+    };
+    loadScheduled();
+  }, [showSettings]);
+
+  const handleTestNotification = async () => {
+    await sendInstantPush(
+      '🔔 Teste de Notificação',
+      'Esta é uma notificação de teste do seu app financeiro!'
+    );
+    Alert.alert('Sucesso', 'Notificação de teste enviada!');
+  };
+
+  const handleRequestPermission = async () => {
+    const granted = await requestPermissions();
+    if (granted) {
+      Alert.alert('Sucesso', 'Permissões concedidas! Você receberá notificações.');
+    } else {
+      Alert.alert(
+        'Permissão Negada',
+        'Para receber notificações, habilite nas configurações do dispositivo.'
+      );
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -242,6 +276,62 @@ export function NotificationsScreen({ navigation }: any) {
             </TouchableOpacity>
           ))}
         </Card>
+
+        {/* Status de Permissões */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Status do Sistema</Text>
+
+        <Card style={styles.settingsCard}>
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons
+                name={hasPermission ? 'check-circle' : 'alert-circle'}
+                size={24}
+                color={hasPermission ? colors.income : colors.expense}
+              />
+              <View>
+                <Text style={[styles.settingTitle, { color: colors.text }]}>
+                  Permissões de Notificação
+                </Text>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  {hasPermission ? 'Concedidas' : 'Não concedidas'}
+                </Text>
+              </View>
+            </View>
+            {!hasPermission && (
+              <TouchableOpacity
+                style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+                onPress={handleRequestPermission}
+              >
+                <Text style={styles.permissionButtonText}>Permitir</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={[styles.settingItem, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+            <View style={styles.settingInfo}>
+              <MaterialCommunityIcons name="clock-outline" size={24} color={colors.primary} />
+              <View>
+                <Text style={[styles.settingTitle, { color: colors.text }]}>
+                  Notificações Agendadas
+                </Text>
+                <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                  {scheduledCount} {scheduledCount === 1 ? 'lembrete' : 'lembretes'} programados
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Card>
+
+        {/* Botão de Teste */}
+        {hasPermission && (
+          <TouchableOpacity
+            style={[styles.testButton, { backgroundColor: colors.primary }]}
+            onPress={handleTestNotification}
+          >
+            <MaterialCommunityIcons name="bell-ring" size={20} color="#FFF" />
+            <Text style={styles.testButtonText}>Testar Notificação</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     );
   }
@@ -494,5 +584,29 @@ const createStyles = (colors: any) =>
     },
     reminderText: {
       fontSize: 15,
+    },
+    permissionButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    permissionButtonText: {
+      color: '#FFF',
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    testButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      padding: 16,
+      borderRadius: 12,
+      marginTop: 24,
+    },
+    testButtonText: {
+      color: '#FFF',
+      fontSize: 16,
+      fontWeight: '600',
     },
   });

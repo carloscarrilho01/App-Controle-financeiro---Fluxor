@@ -16,10 +16,12 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
 import { useAccounts } from '../hooks/useAccounts';
 import { useGoals } from '../hooks/useGoals';
+import { useDebts } from '../hooks/useDebts';
 import { analyzeFinances, chatWithAI, quickSuggestions } from '../services/aiService';
 import { COLORS } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { wp, hp, fs, spacing, borderRadius, iconSize } from '../utils/responsive';
+import { TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 
 interface Message {
   id: string;
@@ -33,6 +35,7 @@ export function AIAssistantScreen() {
   const { categories } = useCategories();
   const { accounts, getTotalBalance } = useAccounts();
   const { goals } = useGoals();
+  const { getDebtsForAnalysis } = useDebts();
   const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -60,6 +63,7 @@ export function AIAssistantScreen() {
     totalBalance: getTotalBalance(),
     monthlyIncome: monthSummary.income,
     monthlyExpenses: monthSummary.expense,
+    debtsData: getDebtsForAnalysis(),
   });
 
   const handleInitialAnalysis = async () => {
@@ -125,6 +129,7 @@ export function AIAssistantScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={hp(90)}
     >
+      <TutorialTooltip tutorialKey="aiAssistant" steps={SCREEN_TUTORIALS.aiAssistant} />
       {/* Header com resumo */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]}>
         <View style={styles.headerInfo}>

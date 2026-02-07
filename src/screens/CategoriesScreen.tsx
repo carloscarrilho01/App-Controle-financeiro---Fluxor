@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,13 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  Animated,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCategories } from '../hooks/useCategories';
 import { Card, Button, Input } from '../components';
-import { Category, DEFAULT_CATEGORIES } from '../types';
+import { Category } from '../types';
 
 const CATEGORY_ICONS = [
   'home', 'food', 'car', 'bus', 'medical-bag', 'school', 'shopping',
@@ -36,12 +37,20 @@ export function CategoriesScreen({ navigation }: any) {
     categories,
     incomeCategories,
     expenseCategories,
+    allIncomeCategories,
+    allExpenseCategories,
     loading,
     createCategory,
     updateCategory,
     deleteCategory,
-    refresh,
+    fetchCategories,
+    getSubcategories,
+    hasSubcategories,
+    getCategoryTree,
+    createSubcategory,
   } = useCategories();
+
+  const refresh = fetchCategories;
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -52,6 +61,11 @@ export function CategoriesScreen({ navigation }: any) {
   const [icon, setIcon] = useState('tag');
   const [color, setColor] = useState(CATEGORY_COLORS[0]);
   const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [parentCategory, setParentCategory] = useState<Category | null>(null);
+  const [isSubcategory, setIsSubcategory] = useState(false);
+
+  // State para controlar expansão das categorias
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -65,11 +79,43 @@ export function CategoriesScreen({ navigation }: any) {
     setColor(CATEGORY_COLORS[0]);
     setType('expense');
     setEditingCategory(null);
+    setParentCategory(null);
+    setIsSubcategory(false);
   };
 
-  const handleOpenAdd = () => {
+  // Toggle expansão de categoria
+  const toggleExpand = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Obter categorias principais (sem parent)
+  const getMainCategories = (cats: Category[]) => {
+    return cats.filter(cat => !cat.parent_id);
+  };
+
+  // Categorias principais por tipo
+  const mainExpenseCategories = useMemo(() =>
+    getMainCategories(expenseCategories), [expenseCategories]);
+  const mainIncomeCategories = useMemo(() =>
+    getMainCategories(incomeCategories), [incomeCategories]);
+
+  const handleOpenAdd = (parent?: Category) => {
     resetForm();
     setType(activeTab);
+    if (parent) {
+      setParentCategory(parent);
+      setIsSubcategory(true);
+      setType(parent.type);
+      setColor(parent.color); // Herdar cor do pai
+    }
     setShowAddModal(true);
   };
 
@@ -79,6 +125,11 @@ export function CategoriesScreen({ navigation }: any) {
     setIcon(category.icon);
     setColor(category.color);
     setType(category.type);
+    setIsSubcategory(!!category.parent_id);
+    if (category.parent_id) {
+      const parent = categories.find(c => c.id === category.parent_id);
+      setParentCategory(parent || null);
+    }
     setShowAddModal(true);
   };
 
@@ -95,6 +146,17 @@ export function CategoriesScreen({ navigation }: any) {
           icon,
           color,
         });
+      } else if (isSubcategory && parentCategory) {
+        // Criar subcategoria
+        await createSubcategory(parentCategory.id, {
+          name: name.trim(),
+          icon,
+          color,
+          type: parentCategory.type,
+          is_default: false,
+        });
+        // Expandir a categoria pai para mostrar a nova subcategoria
+        setExpandedCategories(prev => new Set([...prev, parentCategory.id]));
       } else {
         await createCategory({
           name: name.trim(),
@@ -118,15 +180,26 @@ export function CategoriesScreen({ navigation }: any) {
       return;
     }
 
+    const subcats = getSubcategories(category.id);
+    const hasSubcats = subcats.length > 0;
+
     Alert.alert(
       'Excluir Categoria',
-      `Deseja excluir a categoria "${category.name}"? Transações com esta categoria não serão excluídas.`,
+      hasSubcats
+        ? `Deseja excluir a categoria "${category.name}" e suas ${subcats.length} subcategoria(s)? Transações com estas categorias não serão excluídas.`
+        : `Deseja excluir a categoria "${category.name}"? Transações com esta categoria não serão excluídas.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
+            // Se tem subcategorias, deletar elas primeiro
+            if (hasSubcats) {
+              for (const subcat of subcats) {
+                await deleteCategory(subcat.id);
+              }
+            }
             await deleteCategory(category.id);
             refresh();
           },
@@ -135,7 +208,107 @@ export function CategoriesScreen({ navigation }: any) {
     );
   };
 
-  const displayCategories = activeTab === 'expense' ? expenseCategories : incomeCategories;
+  const displayCategories = activeTab === 'expense' ? mainExpenseCategories : mainIncomeCategories;
+
+  // Renderizar categoria com suas subcategorias
+  const renderCategory = (category: Category, isSubcat = false) => {
+    const subcategories = getSubcategories(category.id);
+    const hasSubs = subcategories.length > 0;
+    const isExpanded = expandedCategories.has(category.id);
+
+    return (
+      <View key={category.id}>
+        <TouchableOpacity
+          onPress={() => {
+            if (hasSubs) {
+              toggleExpand(category.id);
+            } else {
+              handleOpenEdit(category);
+            }
+          }}
+          onLongPress={() => handleDelete(category)}
+        >
+          <Card style={[styles.categoryCard, isSubcat && styles.subcategoryCard]}>
+            <View style={styles.categoryContent}>
+              {/* Indicador de expansão */}
+              {hasSubs && (
+                <TouchableOpacity
+                  onPress={() => toggleExpand(category.id)}
+                  style={styles.expandButton}
+                >
+                  <MaterialCommunityIcons
+                    name={isExpanded ? 'chevron-down' : 'chevron-right'}
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
+              {isSubcat && !hasSubs && <View style={styles.subcatIndent} />}
+
+              <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+                <MaterialCommunityIcons
+                  name={category.icon as any}
+                  size={isSubcat ? 20 : 24}
+                  color="#FFFFFF"
+                />
+              </View>
+              <View style={styles.categoryInfo}>
+                <View style={styles.categoryNameRow}>
+                  <Text style={[styles.categoryName, { color: colors.text }, isSubcat && styles.subcatName]}>
+                    {category.name}
+                  </Text>
+                  {hasSubs && (
+                    <View style={[styles.subcatCountBadge, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.subcatCountText, { color: colors.primary }]}>
+                        {subcategories.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                {category.is_default && (
+                  <Text style={[styles.categoryBadge, { color: colors.textSecondary }]}>
+                    Padrão
+                  </Text>
+                )}
+              </View>
+
+              {/* Botão de adicionar subcategoria */}
+              {!isSubcat && (
+                <TouchableOpacity
+                  onPress={() => handleOpenAdd(category)}
+                  style={styles.addSubButton}
+                >
+                  <MaterialCommunityIcons name="plus-circle" size={22} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={() => handleOpenEdit(category)}
+                style={styles.editButton}
+              >
+                <MaterialCommunityIcons name="pencil" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+              {!category.is_default && (
+                <TouchableOpacity
+                  onPress={() => handleDelete(category)}
+                  style={styles.deleteButton}
+                >
+                  <MaterialCommunityIcons name="delete" size={20} color={colors.expense} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </Card>
+        </TouchableOpacity>
+
+        {/* Subcategorias */}
+        {isExpanded && subcategories.length > 0 && (
+          <View style={styles.subcategoriesContainer}>
+            {subcategories.map(subcat => renderCategory(subcat, true))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const styles = createStyles(colors);
 
@@ -168,7 +341,7 @@ export function CategoriesScreen({ navigation }: any) {
               { color: activeTab === 'expense' ? '#FFFFFF' : colors.textSecondary },
             ]}
           >
-            Despesas ({expenseCategories.length})
+            Despesas ({allExpenseCategories.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -190,7 +363,7 @@ export function CategoriesScreen({ navigation }: any) {
               { color: activeTab === 'income' ? '#FFFFFF' : colors.textSecondary },
             ]}
           >
-            Receitas ({incomeCategories.length})
+            Receitas ({allIncomeCategories.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -204,6 +377,14 @@ export function CategoriesScreen({ navigation }: any) {
         <Text style={styles.addButtonText}>Nova Categoria</Text>
       </TouchableOpacity>
 
+      {/* Info sobre subcategorias */}
+      <View style={[styles.infoBox, { backgroundColor: colors.primary + '10' }]}>
+        <MaterialCommunityIcons name="information" size={20} color={colors.primary} />
+        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+          Toque no + para criar subcategorias. Toque na seta para expandir.
+        </Text>
+      </View>
+
       {/* Categories List */}
       {displayCategories.length === 0 ? (
         <Card style={styles.emptyCard}>
@@ -214,49 +395,7 @@ export function CategoriesScreen({ navigation }: any) {
         </Card>
       ) : (
         <View style={styles.categoriesList}>
-          {displayCategories.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              onPress={() => handleOpenEdit(category)}
-              onLongPress={() => handleDelete(category)}
-            >
-              <Card style={styles.categoryCard}>
-                <View style={styles.categoryContent}>
-                  <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-                    <MaterialCommunityIcons
-                      name={category.icon as any}
-                      size={24}
-                      color="#FFFFFF"
-                    />
-                  </View>
-                  <View style={styles.categoryInfo}>
-                    <Text style={[styles.categoryName, { color: colors.text }]}>
-                      {category.name}
-                    </Text>
-                    {category.is_default && (
-                      <Text style={[styles.categoryBadge, { color: colors.textSecondary }]}>
-                        Padrão
-                      </Text>
-                    )}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleOpenEdit(category)}
-                    style={styles.editButton}
-                  >
-                    <MaterialCommunityIcons name="pencil" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                  {!category.is_default && (
-                    <TouchableOpacity
-                      onPress={() => handleDelete(category)}
-                      style={styles.deleteButton}
-                    >
-                      <MaterialCommunityIcons name="delete" size={20} color={colors.expense} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
+          {displayCategories.map((category) => renderCategory(category))}
         </View>
       )}
 
@@ -281,6 +420,14 @@ export function CategoriesScreen({ navigation }: any) {
               <Text style={[styles.previewName, { color: colors.text }]}>
                 {name || 'Nome da categoria'}
               </Text>
+              {isSubcategory && parentCategory && (
+                <View style={[styles.parentBadge, { backgroundColor: colors.primary + '20' }]}>
+                  <MaterialCommunityIcons name="subdirectory-arrow-right" size={14} color={colors.primary} />
+                  <Text style={[styles.parentBadgeText, { color: colors.primary }]}>
+                    Subcategoria de {parentCategory.name}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Name Input */}
@@ -291,8 +438,8 @@ export function CategoriesScreen({ navigation }: any) {
               placeholder="Ex: Alimentação, Lazer..."
             />
 
-            {/* Type Selector (only for new) */}
-            {!editingCategory && (
+            {/* Type Selector (only for new and not subcategory) */}
+            {!editingCategory && !isSubcategory && (
               <>
                 <Text style={[styles.label, { color: colors.text }]}>Tipo</Text>
                 <View style={styles.typeSelector}>
@@ -331,6 +478,60 @@ export function CategoriesScreen({ navigation }: any) {
                     </Text>
                   </TouchableOpacity>
                 </View>
+              </>
+            )}
+
+            {/* Parent Category Selector (for converting to subcategory) */}
+            {!editingCategory && !isSubcategory && (
+              <>
+                <Text style={[styles.label, { color: colors.text }]}>Categoria Pai (opcional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.parentScroll}>
+                  <TouchableOpacity
+                    style={[
+                      styles.parentOption,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      !parentCategory && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                    ]}
+                    onPress={() => {
+                      setParentCategory(null);
+                      setIsSubcategory(false);
+                    }}
+                  >
+                    <Text style={[styles.parentOptionText, { color: !parentCategory ? colors.primary : colors.text }]}>
+                      Nenhuma
+                    </Text>
+                  </TouchableOpacity>
+                  {(type === 'expense' ? mainExpenseCategories : mainIncomeCategories).map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.parentOption,
+                        { backgroundColor: colors.card, borderColor: colors.border },
+                        parentCategory?.id === cat.id && { backgroundColor: cat.color + '20', borderColor: cat.color },
+                      ]}
+                      onPress={() => {
+                        setParentCategory(cat);
+                        setIsSubcategory(true);
+                        setColor(cat.color);
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name={cat.icon as any}
+                        size={16}
+                        color={parentCategory?.id === cat.id ? cat.color : colors.text}
+                      />
+                      <Text
+                        style={[
+                          styles.parentOptionText,
+                          { color: parentCategory?.id === cat.id ? cat.color : colors.text },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </>
             )}
 
@@ -452,13 +653,36 @@ const createStyles = (colors: any) =>
     categoriesList: {
       gap: 8,
     },
+    infoBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 16,
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 13,
+    },
     categoryCard: {
       padding: 12,
+    },
+    subcategoryCard: {
+      marginLeft: 20,
+      padding: 10,
     },
     categoryContent: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 8,
+    },
+    expandButton: {
+      padding: 4,
+      marginRight: 4,
+    },
+    subcatIndent: {
+      width: 32,
     },
     categoryIcon: {
       width: 48,
@@ -470,19 +694,44 @@ const createStyles = (colors: any) =>
     categoryInfo: {
       flex: 1,
     },
+    categoryNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     categoryName: {
       fontSize: 16,
+      fontWeight: '600',
+    },
+    subcatName: {
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    subcatCountBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    subcatCountText: {
+      fontSize: 11,
       fontWeight: '600',
     },
     categoryBadge: {
       fontSize: 12,
       marginTop: 2,
     },
+    addSubButton: {
+      padding: 8,
+    },
     editButton: {
       padding: 8,
     },
     deleteButton: {
       padding: 8,
+    },
+    subcategoriesContainer: {
+      marginTop: 4,
+      gap: 4,
     },
     modalOverlay: {
       position: 'absolute',
@@ -526,6 +775,19 @@ const createStyles = (colors: any) =>
       fontWeight: '600',
       marginTop: 8,
     },
+    parentBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginTop: 8,
+    },
+    parentBadgeText: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
     label: {
       fontSize: 14,
       fontWeight: '600',
@@ -545,6 +807,24 @@ const createStyles = (colors: any) =>
     typeOptionText: {
       fontSize: 14,
       fontWeight: '600',
+    },
+    parentScroll: {
+      maxHeight: 44,
+    },
+    parentOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 20,
+      marginRight: 8,
+      borderWidth: 1,
+    },
+    parentOptionText: {
+      fontSize: 13,
+      fontWeight: '500',
+      maxWidth: 100,
     },
     iconScroll: {
       maxHeight: 50,

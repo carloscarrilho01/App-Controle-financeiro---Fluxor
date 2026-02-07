@@ -450,6 +450,10 @@ export function useReports() {
 
       score = Math.max(0, Math.min(1000, score));
 
+      // Calcular comprometimento de renda com dívidas
+      const monthlyDebtPayments = debts?.reduce((sum, d) => sum + (d.monthly_payment || 0), 0) || 0;
+      const debtIncomeRatio = monthlyIncome > 0 ? (monthlyDebtPayments / monthlyIncome) * 100 : 0;
+
       // Gerar recomendações
       const recommendations: string[] = [];
 
@@ -460,7 +464,13 @@ export function useReports() {
         recommendations.push('Construa um fundo de emergência de 6 meses de despesas');
       }
       if (debtRatio > 30) {
-        recommendations.push('Priorize o pagamento das dívidas com maiores juros');
+        recommendations.push('Priorize o pagamento das dívidas com maiores juros (estratégia avalanche)');
+      }
+      if (debtIncomeRatio > 30) {
+        recommendations.push(`Suas parcelas de dívidas comprometem ${debtIncomeRatio.toFixed(0)}% da renda. Tente renegociar prazos ou taxas.`);
+      }
+      if ((debts?.length || 0) > 0 && debtRatio <= 30) {
+        recommendations.push('Continue pagando suas dívidas em dia. Considere pagamentos extras quando possível.');
       }
       if (expenseRatio > 80) {
         recommendations.push('Revise seus gastos e identifique onde pode economizar');
@@ -485,7 +495,7 @@ export function useReports() {
     }
   }, [user]);
 
-  // Projeção de fluxo de caixa
+  // Projeção de fluxo de caixa (agora inclui parcelas de dívidas)
   const getCashFlowProjection = useCallback(async (months: number = 3): Promise<CashFlowProjection[]> => {
     if (!user) return [];
 
@@ -508,6 +518,16 @@ export function useReports() {
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0) / 6;
 
+      // Buscar dívidas ativas para incluir parcelas na projeção
+      const { data: activeDebts } = await supabase
+        .from('debts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      const monthlyDebtPayments = activeDebts?.reduce((sum, d) => sum + (d.monthly_payment || 0), 0) || 0;
+      const totalDebtBalance = activeDebts?.reduce((sum, d) => sum + d.current_balance, 0) || 0;
+
       // Buscar saldo atual
       const { data: accounts } = await supabase
         .from('accounts')
@@ -516,17 +536,23 @@ export function useReports() {
 
       let currentBalance = accounts?.reduce((sum, a) => sum + a.balance, 0) || 0;
 
-      // Gerar projeção
+      // Gerar projeção incluindo dívidas
       const projections: CashFlowProjection[] = [];
+      let remainingDebt = totalDebtBalance;
 
       for (let i = 1; i <= months; i++) {
         const projectedDate = addMonths(endDate, i);
-        const projectedBalance = currentBalance + (monthlyIncome - monthlyExpense) * i;
+        // Parcelas de dívida são somadas às despesas projetadas
+        const debtPaymentThisMonth = remainingDebt > 0 ? Math.min(monthlyDebtPayments, remainingDebt) : 0;
+        remainingDebt = Math.max(0, remainingDebt - debtPaymentThisMonth);
+
+        const totalExpense = monthlyExpense + debtPaymentThisMonth;
+        const projectedBalance = currentBalance + (monthlyIncome - totalExpense) * i;
 
         projections.push({
           date: format(projectedDate, 'yyyy-MM-dd'),
           projected_income: monthlyIncome,
-          projected_expense: monthlyExpense,
+          projected_expense: totalExpense,
           projected_balance: projectedBalance,
         });
       }

@@ -22,7 +22,6 @@ export function useAccounts() {
 
       if (error) throw error;
 
-      // Garantir que is_archived seja booleano
       const formattedAccounts = (data || []).map((a: any) => ({
         ...a,
         is_archived: a.is_archived === true || a.is_archived === 'true',
@@ -43,6 +42,18 @@ export function useAccounts() {
   const createAccount = async (account: Omit<Account, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: new Error('User not authenticated') };
 
+    // 🚀 OPTIMISTIC UPDATE
+    const tempId = `temp_${Date.now()}`;
+    const optimisticAccount: Account = {
+      ...account,
+      id: tempId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setAccounts(prev => [...prev, optimisticAccount]);
+
     try {
       const { data, error } = await supabase
         .from('accounts')
@@ -51,14 +62,23 @@ export function useAccounts() {
         .single();
 
       if (error) throw error;
-      setAccounts(prev => [...prev, data]);
+
+      // Substituir pelo real
+      setAccounts(prev => prev.map(a => a.id === tempId ? { ...data, is_archived: data.is_archived === true } : a));
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setAccounts(prev => prev.filter(a => a.id !== tempId));
       return { data: null, error: err as Error };
     }
   };
 
   const updateAccount = async (id: string, updates: Partial<Account>) => {
+    const previousAccounts = [...accounts];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...updates } : acc));
+
     try {
       const { data, error } = await supabase
         .from('accounts')
@@ -68,14 +88,22 @@ export function useAccounts() {
         .single();
 
       if (error) throw error;
-      setAccounts(prev => prev.map(acc => acc.id === id ? data : acc));
+
+      setAccounts(prev => prev.map(acc => acc.id === id ? { ...data, is_archived: data.is_archived === true } : acc));
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setAccounts(previousAccounts);
       return { data: null, error: err as Error };
     }
   };
 
   const deleteAccount = async (id: string) => {
+    const previousAccounts = [...accounts];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setAccounts(prev => prev.filter(acc => acc.id !== id));
+
     try {
       const { error } = await supabase
         .from('accounts')
@@ -83,21 +111,30 @@ export function useAccounts() {
         .eq('id', id);
 
       if (error) throw error;
-      setAccounts(prev => prev.filter(acc => acc.id !== id));
       return { error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setAccounts(previousAccounts);
       return { error: err as Error };
     }
   };
 
   const getTotalBalance = () => {
     return accounts.reduce((total, acc) => {
-      // Cartão de crédito é negativo no saldo total
       if (acc.type === 'credit_card') {
         return total - acc.balance;
       }
       return total + acc.balance;
     }, 0);
+  };
+
+  // Atualizar saldo localmente (para updates rápidos)
+  const updateBalanceLocally = (accountId: string, amount: number) => {
+    setAccounts(prev => prev.map(acc =>
+      acc.id === accountId
+        ? { ...acc, balance: acc.balance + amount }
+        : acc
+    ));
   };
 
   return {
@@ -109,5 +146,6 @@ export function useAccounts() {
     updateAccount,
     deleteAccount,
     getTotalBalance,
+    updateBalanceLocally,
   };
 }

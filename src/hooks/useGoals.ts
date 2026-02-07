@@ -22,7 +22,6 @@ export function useGoals() {
 
       if (error) throw error;
 
-      // Garantir que is_completed seja booleano
       const formattedGoals = (data || []).map((g: any) => ({
         ...g,
         is_completed: g.is_completed === true || g.is_completed === 'true',
@@ -43,6 +42,20 @@ export function useGoals() {
   const createGoal = async (goal: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: new Error('User not authenticated') };
 
+    // 🚀 OPTIMISTIC UPDATE
+    const tempId = `temp_${Date.now()}`;
+    const optimisticGoal: Goal = {
+      ...goal,
+      id: tempId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setGoals(prev => [...prev, optimisticGoal].sort((a, b) =>
+      new Date(a.deadline || '9999-12-31').getTime() - new Date(b.deadline || '9999-12-31').getTime()
+    ));
+
     try {
       const { data, error } = await supabase
         .from('goals')
@@ -51,14 +64,22 @@ export function useGoals() {
         .single();
 
       if (error) throw error;
-      setGoals(prev => [...prev, data]);
+
+      setGoals(prev => prev.map(g => g.id === tempId ? { ...data, is_completed: data.is_completed === true } : g));
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setGoals(prev => prev.filter(g => g.id !== tempId));
       return { data: null, error: err as Error };
     }
   };
 
   const updateGoal = async (id: string, updates: Partial<Goal>) => {
+    const previousGoals = [...goals];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+
     try {
       const { data, error } = await supabase
         .from('goals')
@@ -68,14 +89,22 @@ export function useGoals() {
         .single();
 
       if (error) throw error;
-      setGoals(prev => prev.map(g => g.id === id ? data : g));
+
+      setGoals(prev => prev.map(g => g.id === id ? { ...data, is_completed: data.is_completed === true } : g));
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setGoals(previousGoals);
       return { data: null, error: err as Error };
     }
   };
 
   const deleteGoal = async (id: string) => {
+    const previousGoals = [...goals];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setGoals(prev => prev.filter(g => g.id !== id));
+
     try {
       const { error } = await supabase
         .from('goals')
@@ -83,9 +112,10 @@ export function useGoals() {
         .eq('id', id);
 
       if (error) throw error;
-      setGoals(prev => prev.filter(g => g.id !== id));
       return { error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setGoals(previousGoals);
       return { error: err as Error };
     }
   };

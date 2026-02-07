@@ -26,7 +26,8 @@ export function BudgetsScreen({ navigation }: any) {
     updateBudget,
     deleteBudget,
     fetchBudgets,
-    getSummary
+    getSummary,
+    checkBudgetAlerts,
   } = useBudgets();
   const { expenseCategories } = useCategories();
   const [refreshing, setRefreshing] = useState(false);
@@ -102,6 +103,9 @@ export function BudgetsScreen({ navigation }: any) {
   };
 
   const summary = getSummary();
+  const budgetAlerts = checkBudgetAlerts();
+  const criticalAlerts = budgetAlerts.filter(a => a.percentage >= 100);
+  const warningAlerts = budgetAlerts.filter(a => a.percentage >= 75 && a.percentage < 100);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,6 +134,39 @@ export function BudgetsScreen({ navigation }: any) {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
       }
     >
+      {/* Alertas de Orçamento */}
+      {criticalAlerts.length > 0 && (
+        <Card style={[styles.alertCard, { backgroundColor: colors.expense + '15', borderColor: colors.expense }]}>
+          <View style={styles.alertHeader}>
+            <MaterialCommunityIcons name="alert-circle" size={24} color={colors.expense} />
+            <Text style={[styles.alertTitle, { color: colors.expense }]}>
+              {criticalAlerts.length} {criticalAlerts.length === 1 ? 'categoria excedeu' : 'categorias excederam'} o limite!
+            </Text>
+          </View>
+          {criticalAlerts.slice(0, 3).map((alert) => (
+            <Text key={alert.category.id} style={[styles.alertItem, { color: colors.text }]}>
+              {alert.category.name}: {alert.percentage.toFixed(0)}% (R$ {alert.spent.toFixed(2).replace('.', ',')} / R$ {alert.limit.toFixed(2).replace('.', ',')})
+            </Text>
+          ))}
+        </Card>
+      )}
+
+      {warningAlerts.length > 0 && criticalAlerts.length === 0 && (
+        <Card style={[styles.alertCard, { backgroundColor: colors.warning + '15', borderColor: colors.warning }]}>
+          <View style={styles.alertHeader}>
+            <MaterialCommunityIcons name="alert" size={24} color={colors.warning} />
+            <Text style={[styles.alertTitle, { color: colors.warning }]}>
+              {warningAlerts.length} {warningAlerts.length === 1 ? 'categoria próxima' : 'categorias próximas'} do limite
+            </Text>
+          </View>
+          {warningAlerts.slice(0, 3).map((alert) => (
+            <Text key={alert.category.id} style={[styles.alertItem, { color: colors.text }]}>
+              {alert.category.name}: {alert.percentage.toFixed(0)}%
+            </Text>
+          ))}
+        </Card>
+      )}
+
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
         <Text style={[styles.summaryMonth, { color: colors.textSecondary }]}>
@@ -386,6 +423,28 @@ const createStyles = (colors: any) =>
     content: {
       padding: 16,
       paddingBottom: 40,
+    },
+    alertCard: {
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderRadius: 12,
+    },
+    alertHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    alertTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      flex: 1,
+    },
+    alertItem: {
+      fontSize: 13,
+      marginLeft: 32,
+      marginTop: 4,
     },
     summaryCard: {
       padding: 16,

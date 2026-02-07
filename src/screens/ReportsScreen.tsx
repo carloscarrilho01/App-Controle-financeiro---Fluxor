@@ -12,7 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { useTheme } from '../contexts/ThemeContext';
 import { useReports } from '../hooks/useReports';
-import { Card } from '../components';
+import { Card, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { formatCurrency, formatPercent, formatShortMonth } from '../utils/formatters';
 import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -631,6 +631,7 @@ export function ReportsScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TutorialTooltip tutorialKey="reports" steps={SCREEN_TUTORIALS.reports} />
       {/* Tabs */}
       <View style={[styles.tabs, { backgroundColor: colors.card }]}>
         {(['overview', 'monthly', 'yearly', 'health'] as ReportTab[]).map((tab) => (

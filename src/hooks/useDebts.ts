@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Debt, DebtPayment, DEBT_TYPES } from '../types';
-import { addMonths, format, differenceInMonths } from 'date-fns';
+import { addMonths, format, differenceInMonths, addDays, isBefore } from 'date-fns';
 
 interface DebtSummary {
   totalDebt: number;
@@ -100,6 +100,18 @@ export function useDebts() {
   const createDebt = async (debt: Omit<Debt, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: 'Usuário não autenticado' };
 
+    // 🚀 OPTIMISTIC UPDATE
+    const tempId = `temp_${Date.now()}`;
+    const optimisticDebt: Debt = {
+      ...debt,
+      id: tempId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Debt;
+
+    setDebts((prev) => [optimisticDebt, ...prev]);
+
     try {
       const { data, error: insertError } = await supabase
         .from('debts')
@@ -112,9 +124,12 @@ export function useDebts() {
 
       if (insertError) throw insertError;
 
-      setDebts((prev) => [data, ...prev]);
+      // Substituir pelo real
+      setDebts((prev) => prev.map((d) => d.id === tempId ? { ...data, is_active: data.is_active === true } : d));
       return { data, error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setDebts((prev) => prev.filter((d) => d.id !== tempId));
       console.error('Erro ao criar dívida:', err);
       return { error: err.message || 'Erro ao criar dívida' };
     }
@@ -122,6 +137,11 @@ export function useDebts() {
 
   const updateDebt = async (id: string, updates: Partial<Debt>) => {
     if (!user) return { error: 'Usuário não autenticado' };
+
+    const previousDebts = [...debts];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setDebts((prev) => prev.map((d) => d.id === id ? { ...d, ...updates } : d));
 
     try {
       const { data, error: updateError } = await supabase
@@ -134,9 +154,11 @@ export function useDebts() {
 
       if (updateError) throw updateError;
 
-      setDebts((prev) => prev.map((d) => (d.id === id ? data : d)));
+      setDebts((prev) => prev.map((d) => (d.id === id ? { ...data, is_active: data.is_active === true } : d)));
       return { data, error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setDebts(previousDebts);
       console.error('Erro ao atualizar dívida:', err);
       return { error: err.message || 'Erro ao atualizar dívida' };
     }
@@ -144,6 +166,11 @@ export function useDebts() {
 
   const deleteDebt = async (id: string) => {
     if (!user) return { error: 'Usuário não autenticado' };
+
+    const previousDebts = [...debts];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setDebts((prev) => prev.filter((d) => d.id !== id));
 
     try {
       const { error: deleteError } = await supabase
@@ -154,18 +181,20 @@ export function useDebts() {
 
       if (deleteError) throw deleteError;
 
-      setDebts((prev) => prev.filter((d) => d.id !== id));
       return { error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setDebts(previousDebts);
       console.error('Erro ao excluir dívida:', err);
       return { error: err.message || 'Erro ao excluir dívida' };
     }
   };
 
-  // Registrar pagamento
+  // Registrar pagamento e criar transação vinculada
   const addPayment = async (
     debtId: string,
-    payment: Omit<DebtPayment, 'id' | 'debt_id' | 'created_at'>
+    payment: Omit<DebtPayment, 'id' | 'debt_id' | 'created_at'>,
+    options?: { accountId?: string; categoryId?: string; createTransaction?: boolean }
   ) => {
     try {
       const { data, error: insertError } = await supabase
@@ -190,6 +219,24 @@ export function useDebts() {
           paid_installments: newPaidInstallments,
           is_active: newBalance > 0,
         });
+
+        // Criar transação de despesa vinculada (se solicitado)
+        if (options?.createTransaction && options.accountId) {
+          try {
+            await supabase.from('transactions').insert({
+              user_id: user!.id,
+              account_id: options.accountId,
+              category_id: options.categoryId || null,
+              type: 'expense',
+              amount: payment.amount,
+              description: `Pagamento: ${debt.name}${payment.is_extra ? ' (Extra)' : ''} - Parcela ${payment.installment_number}`,
+              date: payment.date,
+              notes: `Dívida: ${debt.name} | Principal: R$ ${payment.principal.toFixed(2)} | Juros: R$ ${payment.interest.toFixed(2)}`,
+            });
+          } catch (txErr) {
+            console.warn('Transação vinculada não foi criada:', txErr);
+          }
+        }
       }
 
       setPayments((prev) => [data, ...prev]);
@@ -198,6 +245,57 @@ export function useDebts() {
       console.error('Erro ao adicionar pagamento:', err);
       return { error: err.message || 'Erro ao adicionar pagamento' };
     }
+  };
+
+  // Obter dívidas próximas do vencimento
+  const getUpcomingDebts = (daysAhead: number = 7): Debt[] => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    return debts
+      .filter((d) => d.is_active && d.due_day)
+      .filter((d) => {
+        // Calcular a próxima data de vencimento
+        let dueDate = new Date(currentYear, currentMonth, d.due_day!);
+        if (isBefore(dueDate, today)) {
+          // Se já passou, pegar o próximo mês
+          dueDate = new Date(currentYear, currentMonth + 1, d.due_day!);
+        }
+        const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return daysUntilDue >= 0 && daysUntilDue <= daysAhead;
+      })
+      .sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
+  };
+
+  // Obter dados para integração com o AI/Reports
+  const getDebtsForAnalysis = () => {
+    const activeDebts = debts.filter((d) => d.is_active);
+    const totalDebt = activeDebts.reduce((sum, d) => sum + d.current_balance, 0);
+    const totalMonthly = activeDebts.reduce((sum, d) => sum + (d.monthly_payment || 0), 0);
+    const highestInterest = activeDebts.length > 0
+      ? activeDebts.reduce((max, d) => d.interest_rate > max.interest_rate ? d : max)
+      : null;
+    const totalOriginal = activeDebts.reduce((sum, d) => sum + d.original_amount, 0);
+    const totalPaid = totalOriginal - totalDebt;
+
+    return {
+      activeDebts,
+      totalDebt,
+      totalMonthly,
+      totalOriginal,
+      totalPaid,
+      debtCount: activeDebts.length,
+      highestInterest,
+      averageInterestRate: activeDebts.length > 0
+        ? activeDebts.reduce((sum, d) => sum + d.interest_rate, 0) / activeDebts.length
+        : 0,
+      debtsByType: activeDebts.reduce((acc, d) => {
+        acc[d.type] = (acc[d.type] || 0) + d.current_balance;
+        return acc;
+      }, {} as Record<string, number>),
+    };
   };
 
   // Calcular parcela usando tabela Price
@@ -355,5 +453,7 @@ export function useDebts() {
     getSummary,
     calculateExtraPaymentSavings,
     calculatePriceInstallment,
+    getUpcomingDebts,
+    getDebtsForAnalysis,
   };
 }

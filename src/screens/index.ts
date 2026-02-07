@@ -30,3 +30,22 @@ export { CreditCardsScreen } from './CreditCardsScreen';
 export { BudgetsScreen } from './BudgetsScreen';
 export { NotificationsScreen } from './NotificationsScreen';
 export { CategoriesScreen } from './CategoriesScreen';
+
+// Unified Commitments Screen
+export { CommitmentsScreen } from './CommitmentsScreen';
+
+// Templates Screen
+export { TemplatesScreen } from './TemplatesScreen';
+
+// Achievements Screen
+export { AchievementsScreen } from './AchievementsScreen';
+
+// Backup Screen
+export { BackupScreen } from './BackupScreen';
+
+// Import Screen
+export { ImportScreen } from './ImportScreen';
+
+// Credit Card Screens
+export { CreditCardDetailScreen } from './CreditCardDetailScreen';
+export { AddCreditCardPurchaseScreen } from './AddCreditCardPurchaseScreen';

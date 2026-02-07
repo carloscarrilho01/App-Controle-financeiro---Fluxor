@@ -22,13 +22,13 @@ export function AddDebtScreen({ navigation, route }: any) {
 
   const [name, setName] = useState(editingDebt?.name || '');
   const [type, setType] = useState<keyof typeof DEBT_TYPES>(
-    editingDebt?.type || 'personal_loan'
+    editingDebt?.type || 'personal'
   );
   const [creditor, setCreditor] = useState(editingDebt?.creditor || '');
   const [originalAmount, setOriginalAmount] = useState(editingDebt?.original_amount?.toString() || '');
   const [currentBalance, setCurrentBalance] = useState(editingDebt?.current_balance?.toString() || '');
   const [interestRate, setInterestRate] = useState(editingDebt?.interest_rate?.toString() || '');
-  const [minimumPayment, setMinimumPayment] = useState(editingDebt?.minimum_payment?.toString() || '');
+  const [minimumPayment, setMinimumPayment] = useState(editingDebt?.monthly_payment?.toString() || '');
   const [dueDay, setDueDay] = useState(editingDebt?.due_day?.toString() || '');
   const [startDate, setStartDate] = useState(
     editingDebt?.start_date || format(new Date(), 'yyyy-MM-dd')
@@ -55,16 +55,17 @@ export function AddDebtScreen({ navigation, route }: any) {
       const data = {
         name: name.trim(),
         type,
-        creditor: creditor.trim() || undefined,
+        creditor: creditor.trim() || '',
         original_amount: parseFloat(originalAmount),
         current_balance: balance,
         interest_rate: interestRate ? parseFloat(interestRate) : 0,
-        minimum_payment: minimumPayment ? parseFloat(minimumPayment) : undefined,
+        monthly_payment: minimumPayment ? parseFloat(minimumPayment) : 0,
         due_day: dueDay ? parseInt(dueDay) : undefined,
         start_date: startDate,
         end_date: endDate || undefined,
         notes: notes.trim() || undefined,
         is_active: true,
+        paid_installments: editingDebt?.paid_installments || 0,
       };
 
       if (editingDebt) {

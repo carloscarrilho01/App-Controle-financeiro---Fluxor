@@ -50,9 +50,22 @@ export function useRecurringTransactions() {
   ) => {
     if (!user) return { error: 'Usuário não autenticado' };
 
-    try {
-      const nextDate = transaction.start_date;
+    const nextDate = transaction.start_date;
 
+    // 🚀 OPTIMISTIC UPDATE
+    const tempId = `temp_${Date.now()}`;
+    const optimisticTransaction: RecurringTransaction = {
+      ...transaction,
+      id: tempId,
+      user_id: user.id,
+      next_date: nextDate,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as RecurringTransaction;
+
+    setRecurringTransactions((prev) => [...prev, optimisticTransaction]);
+
+    try {
       const { data, error: insertError } = await supabase
         .from('recurring_transactions')
         .insert({
@@ -65,9 +78,16 @@ export function useRecurringTransactions() {
 
       if (insertError) throw insertError;
 
-      setRecurringTransactions((prev) => [...prev, data]);
+      // Substituir pelo real
+      setRecurringTransactions((prev) => prev.map((t) => t.id === tempId ? {
+        ...data,
+        is_active: data.is_active === true || data.is_active === 'true',
+        auto_create: data.auto_create === true || data.auto_create === 'true',
+      } : t));
       return { data, error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setRecurringTransactions((prev) => prev.filter((t) => t.id !== tempId));
       console.error('Erro ao criar transação recorrente:', err);
       return { error: err.message || 'Erro ao criar transação recorrente' };
     }
@@ -78,6 +98,13 @@ export function useRecurringTransactions() {
     updates: Partial<RecurringTransaction>
   ) => {
     if (!user) return { error: 'Usuário não autenticado' };
+
+    const previousTransactions = [...recurringTransactions];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setRecurringTransactions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+    );
 
     try {
       const { data, error: updateError } = await supabase
@@ -91,10 +118,16 @@ export function useRecurringTransactions() {
       if (updateError) throw updateError;
 
       setRecurringTransactions((prev) =>
-        prev.map((t) => (t.id === id ? data : t))
+        prev.map((t) => (t.id === id ? {
+          ...data,
+          is_active: data.is_active === true || data.is_active === 'true',
+          auto_create: data.auto_create === true || data.auto_create === 'true',
+        } : t))
       );
       return { data, error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setRecurringTransactions(previousTransactions);
       console.error('Erro ao atualizar transação recorrente:', err);
       return { error: err.message || 'Erro ao atualizar transação recorrente' };
     }
@@ -102,6 +135,11 @@ export function useRecurringTransactions() {
 
   const deleteRecurringTransaction = async (id: string) => {
     if (!user) return { error: 'Usuário não autenticado' };
+
+    const previousTransactions = [...recurringTransactions];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setRecurringTransactions((prev) => prev.filter((t) => t.id !== id));
 
     try {
       const { error: deleteError } = await supabase
@@ -112,9 +150,10 @@ export function useRecurringTransactions() {
 
       if (deleteError) throw deleteError;
 
-      setRecurringTransactions((prev) => prev.filter((t) => t.id !== id));
       return { error: null };
     } catch (err: any) {
+      // ❌ ROLLBACK
+      setRecurringTransactions(previousTransactions);
       console.error('Erro ao excluir transação recorrente:', err);
       return { error: err.message || 'Erro ao excluir transação recorrente' };
     }

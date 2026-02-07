@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { OnboardingTutorial } from '../components';
 import { wp, hp, fs, spacing, borderRadius, iconSize } from '../utils/responsive';
 import {
   LoginScreen,
@@ -36,6 +37,13 @@ import {
   BudgetsScreen,
   NotificationsScreen,
   CategoriesScreen,
+  CommitmentsScreen,
+  TemplatesScreen,
+  AchievementsScreen,
+  BackupScreen,
+  ImportScreen,
+  CreditCardDetailScreen,
+  AddCreditCardPurchaseScreen,
 } from '../screens';
 
 const Stack = createNativeStackNavigator();
@@ -228,6 +236,13 @@ function AppStack() {
         })}
       />
 
+      {/* Commitments - Unified Screen */}
+      <Stack.Screen
+        name="Commitments"
+        component={CommitmentsScreen}
+        options={{ title: 'Compromissos' }}
+      />
+
       {/* Bill Screens */}
       <Stack.Screen
         name="Bills"
@@ -305,6 +320,19 @@ function AppStack() {
         component={CreditCardsScreen}
         options={{ title: 'Cartões de Crédito' }}
       />
+      <Stack.Screen
+        name="CreditCardDetail"
+        component={CreditCardDetailScreen}
+        options={({ route }: any) => ({
+          title: route.params?.account?.name || 'Detalhes do Cartão',
+          headerShown: false,
+        })}
+      />
+      <Stack.Screen
+        name="AddCreditCardPurchase"
+        component={AddCreditCardPurchaseScreen}
+        options={{ title: 'Nova Compra' }}
+      />
 
       {/* Reports & Analytics */}
       <Stack.Screen
@@ -344,6 +372,34 @@ function AppStack() {
         name="Categories"
         component={CategoriesScreen}
         options={{ title: 'Categorias' }}
+      />
+
+      {/* Templates */}
+      <Stack.Screen
+        name="Templates"
+        component={TemplatesScreen}
+        options={{ title: 'Templates' }}
+      />
+
+      {/* Achievements */}
+      <Stack.Screen
+        name="Achievements"
+        component={AchievementsScreen}
+        options={{ title: 'Conquistas' }}
+      />
+
+      {/* Backup */}
+      <Stack.Screen
+        name="Backup"
+        component={BackupScreen}
+        options={{ title: 'Backup e Exportação' }}
+      />
+
+      {/* Import */}
+      <Stack.Screen
+        name="Import"
+        component={ImportScreen}
+        options={{ title: 'Importar Extrato' }}
       />
     </Stack.Navigator>
   );
@@ -415,10 +471,15 @@ function LoadingScreen() {
 // Main Navigator
 export function AppNavigator() {
   const { user, loading: authLoading } = useAuth();
-  const { settings, isAuthenticated, setAuthenticated } = useSettings();
+  const { settings, isAuthenticated, setAuthenticated, hasCompletedOnboarding, completeOnboarding } = useSettings();
 
   if (authLoading) {
     return <LoadingScreen />;
+  }
+
+  // Mostrar tutorial de onboarding para novos usuários autenticados
+  if (user && !hasCompletedOnboarding) {
+    return <OnboardingTutorial onComplete={completeOnboarding} />;
   }
 
   // Show biometric lock if enabled and not authenticated

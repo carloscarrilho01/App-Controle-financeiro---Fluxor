@@ -22,7 +22,7 @@ import { wp, hp, fs, spacing, borderRadius, iconSize, widthPercent, screen } fro
 export function AddTransactionScreen({ navigation, route }: any) {
   const editingTransaction = route.params?.transaction;
   const { createTransaction, updateTransaction } = useTransactions();
-  const { incomeCategories, expenseCategories } = useCategories();
+  const { getFlatCategories } = useCategories();
   const { accounts } = useAccounts();
 
   const [type, setType] = useState<'income' | 'expense' | 'transfer'>(
@@ -48,7 +48,8 @@ export function AddTransactionScreen({ navigation, route }: any) {
   );
   const [loading, setLoading] = useState(false);
 
-  const availableCategories = type === 'income' ? incomeCategories : expenseCategories;
+  // Categorias organizadas com subcategorias
+  const availableCategories = getFlatCategories(type === 'income' ? 'income' : 'expense');
 
   // Calcula numero de colunas baseado na largura da tela
   const categoryColumns = screen.isSmall ? 3 : screen.isLarge ? 4 : 3;
@@ -243,20 +244,30 @@ export function AddTransactionScreen({ navigation, route }: any) {
                   style={[
                     styles.categoryItem,
                     { width: categoryWidth },
+                    category.isSubcategory && styles.subcategoryItem,
                     selectedCategory === category.id && {
                       backgroundColor: category.color,
                     },
                   ]}
                   onPress={() => setSelectedCategory(category.id)}
                 >
+                  {category.isSubcategory && (
+                    <MaterialCommunityIcons
+                      name="subdirectory-arrow-right"
+                      size={12}
+                      color={selectedCategory === category.id ? '#FFFFFF' : COLORS.textSecondary}
+                      style={styles.subcatIcon}
+                    />
+                  )}
                   <MaterialCommunityIcons
                     name={getIconName(category.icon) as any}
-                    size={iconSize.md}
+                    size={category.isSubcategory ? iconSize.sm : iconSize.md}
                     color={selectedCategory === category.id ? '#FFFFFF' : category.color}
                   />
                   <Text
                     style={[
                       styles.categoryText,
+                      category.isSubcategory && styles.subcategoryText,
                       selectedCategory === category.id && styles.categoryTextActive,
                     ]}
                     numberOfLines={1}
@@ -390,6 +401,17 @@ const styles = StyleSheet.create({
   categoryTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  subcategoryItem: {
+    paddingLeft: spacing.sm,
+  },
+  subcategoryText: {
+    fontSize: fs(11),
+  },
+  subcatIcon: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
   },
   saveButton: {
     marginTop: spacing.xl,

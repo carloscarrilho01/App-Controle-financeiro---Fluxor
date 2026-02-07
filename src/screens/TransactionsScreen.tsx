@@ -6,8 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
-import { TransactionItem, Card } from '../components';
+import { TransactionItem, Card, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useTransactions } from '../hooks/useTransactions';
 import { useCategories } from '../hooks/useCategories';
 import { useAccounts } from '../hooks/useAccounts';
@@ -16,7 +17,7 @@ import { formatMonth, formatCurrency } from '../utils/formatters';
 import { startOfMonth, endOfMonth, addMonths, subMonths, format } from 'date-fns';
 
 export function TransactionsScreen({ navigation }: any) {
-  const { transactions, loading, fetchTransactions, getMonthSummary } = useTransactions();
+  const { transactions, loading, fetchTransactions, getMonthSummary, deleteTransaction } = useTransactions();
   const { categories } = useCategories();
   const { accounts } = useAccounts();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -65,6 +66,35 @@ export function TransactionsScreen({ navigation }: any) {
     );
   };
 
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    Alert.alert(
+      'Excluir Transação',
+      `Deseja excluir "${transaction.description || 'esta transação'}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteTransaction(transaction.id);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDuplicateTransaction = (transaction: Transaction) => {
+    navigation.navigate('AddTransaction', {
+      prefill: {
+        type: transaction.type,
+        amount: transaction.amount,
+        description: transaction.description,
+        category_id: transaction.category_id,
+        account_id: transaction.account_id,
+      },
+    });
+  };
+
   const renderTransaction = ({ item }: { item: Transaction }) => {
     const category = categories.find(c => c.id === item.category_id);
     const account = accounts.find(a => a.id === item.account_id);
@@ -75,6 +105,10 @@ export function TransactionsScreen({ navigation }: any) {
         category={category}
         account={account}
         onPress={() => navigation.navigate('TransactionDetail', { transaction: item })}
+        swipeable={true}
+        onEdit={() => navigation.navigate('TransactionDetail', { transaction: item })}
+        onDelete={() => handleDeleteTransaction(item)}
+        onDuplicate={() => handleDuplicateTransaction(item)}
       />
     );
   };
@@ -87,6 +121,7 @@ export function TransactionsScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TutorialTooltip tutorialKey="transactions" steps={SCREEN_TUTORIALS.transactions} />
       {/* Month Navigation */}
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={() => navigateMonth('prev')} style={styles.navButton}>

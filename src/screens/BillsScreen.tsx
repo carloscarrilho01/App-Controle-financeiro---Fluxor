@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { BillItem, Card } from '../components';
+import { BillItem, Card, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useBills } from '../hooks/useBills';
 import { useCategories } from '../hooks/useCategories';
 import { Bill, COLORS } from '../types';
@@ -89,6 +89,7 @@ export function BillsScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TutorialTooltip tutorialKey="bills" steps={SCREEN_TUTORIALS.bills} />
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
         <View style={styles.summaryRow}>

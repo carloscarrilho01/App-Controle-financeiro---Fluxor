@@ -1,9 +1,21 @@
 // Servico de IA para analise financeira
-import { Transaction, Category, Account, Goal } from '../types';
+import { Transaction, Category, Account, Goal, Debt, DEBT_TYPES } from '../types';
 import { ENV } from '../config/env';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_API_KEY = ENV.openaiApiKey;
+
+interface DebtAnalysisData {
+  activeDebts: Debt[];
+  totalDebt: number;
+  totalMonthly: number;
+  totalOriginal: number;
+  totalPaid: number;
+  debtCount: number;
+  highestInterest: Debt | null;
+  averageInterestRate: number;
+  debtsByType: Record<string, number>;
+}
 
 interface FinancialData {
   transactions: Transaction[];
@@ -13,6 +25,7 @@ interface FinancialData {
   totalBalance: number;
   monthlyIncome: number;
   monthlyExpenses: number;
+  debtsData?: DebtAnalysisData;
 }
 
 // Funcao para preparar os dados financeiros para a IA
@@ -66,6 +79,18 @@ METAS:
 ${goalsInfo.length > 0
   ? goalsInfo.map(g => `- ${g.name}: ${g.progress}% concluido`).join('\n')
   : '- Nenhuma meta definida'}
+
+DIVIDAS:
+${data.debtsData && data.debtsData.debtCount > 0
+  ? `- Total de dividas ativas: ${data.debtsData.debtCount}
+- Valor total em dividas: R$ ${data.debtsData.totalDebt.toFixed(2)}
+- Parcelas mensais totais: R$ ${data.debtsData.totalMonthly.toFixed(2)}
+- Ja pago: R$ ${data.debtsData.totalPaid.toFixed(2)} de R$ ${data.debtsData.totalOriginal.toFixed(2)}
+- Taxa media de juros: ${data.debtsData.averageInterestRate.toFixed(1)}% a.m.
+${data.debtsData.highestInterest ? `- Divida com maior juros: ${data.debtsData.highestInterest.name} (${data.debtsData.highestInterest.interest_rate}% a.m. - Saldo: R$ ${data.debtsData.highestInterest.current_balance.toFixed(2)})` : ''}
+- Detalhes:
+${data.debtsData.activeDebts.map(d => `  * ${d.name} (${DEBT_TYPES[d.type]?.label || d.type}): Saldo R$ ${d.current_balance.toFixed(2)} | Parcela R$ ${(d.monthly_payment || 0).toFixed(2)} | Juros ${d.interest_rate}% a.m.`).join('\n')}`
+  : '- Nenhuma divida ativa'}
 
 Total de transacoes: ${data.transactions.length}
 `;

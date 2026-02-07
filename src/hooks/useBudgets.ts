@@ -276,6 +276,50 @@ export function useBudgets() {
     return budgetsWithProgress.filter((b) => b.status === status);
   };
 
+  // Verificar limites e retornar alertas
+  const checkBudgetAlerts = (): { category: Category; percentage: number; spent: number; limit: number }[] => {
+    const alerts: { category: Category; percentage: number; spent: number; limit: number }[] = [];
+
+    budgetsWithProgress.forEach((budget) => {
+      if (budget.category && budget.percentage >= 75) {
+        alerts.push({
+          category: budget.category,
+          percentage: budget.percentage,
+          spent: budget.spent,
+          limit: budget.amount,
+        });
+      }
+    });
+
+    return alerts.sort((a, b) => b.percentage - a.percentage);
+  };
+
+  // Obter gasto atual de uma categoria
+  const getSpentForCategory = (categoryId: string): number => {
+    const budget = budgetsWithProgress.find((b) => b.category_id === categoryId);
+    return budget?.spent || 0;
+  };
+
+  // Obter limite de uma categoria
+  const getLimitForCategory = (categoryId: string): number | null => {
+    const budget = budgetsWithProgress.find((b) => b.category_id === categoryId);
+    return budget?.amount || null;
+  };
+
+  // Verificar se adicionar um valor excederia o limite
+  const wouldExceedLimit = (categoryId: string, amount: number): { exceeds: boolean; newPercentage: number } => {
+    const budget = budgetsWithProgress.find((b) => b.category_id === categoryId);
+    if (!budget) return { exceeds: false, newPercentage: 0 };
+
+    const newSpent = budget.spent + amount;
+    const newPercentage = (newSpent / budget.amount) * 100;
+
+    return {
+      exceeds: newPercentage > 100,
+      newPercentage,
+    };
+  };
+
   // Sugerir orçamentos baseado no histórico
   const getSuggestedBudgets = async (month: number, year: number) => {
     if (!user) return [];
@@ -347,5 +391,9 @@ export function useBudgets() {
     getSummary,
     getBudgetsByStatus,
     getSuggestedBudgets,
+    checkBudgetAlerts,
+    getSpentForCategory,
+    getLimitForCategory,
+    wouldExceedLimit,
   };
 }

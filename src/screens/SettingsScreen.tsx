@@ -9,7 +9,7 @@ import {
   Switch,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Card, Button } from '../components';
+import { Card, Button, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -150,11 +150,13 @@ export function SettingsScreen({ navigation }: any) {
   );
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      {/* Profile Card */}
+    <>
+      <TutorialTooltip tutorialKey="settings" steps={SCREEN_TUTORIALS.settings} />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.content}
+      >
+        {/* Profile Card */}
       <Card style={styles.profileCard}>
         <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>
@@ -226,26 +228,18 @@ export function SettingsScreen({ navigation }: any) {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <MenuItem
+          icon="calendar-check"
+          title="Compromissos"
+          description="Vencimentos, fixas e financiamentos"
+          onPress={() => navigation.navigate('Commitments')}
+        />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+        <MenuItem
           icon="credit-card"
           title="Cartões de Crédito"
           description="Faturas e parcelamentos"
           onPress={() => navigation.navigate('CreditCards')}
-        />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <MenuItem
-          icon="repeat"
-          title="Transações Recorrentes"
-          description="Receitas e despesas fixas"
-          onPress={() => navigation.navigate('RecurringTransactions')}
-        />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <MenuItem
-          icon="file-document-outline"
-          title="Contas a Pagar"
-          description="Gerenciar contas e lembretes"
-          onPress={() => navigation.navigate('Bills')}
         />
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
@@ -258,10 +252,10 @@ export function SettingsScreen({ navigation }: any) {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <MenuItem
-          icon="credit-card-off"
-          title="Dívidas"
-          description="Gerencie seus débitos"
-          onPress={() => navigation.navigate('Debts')}
+          icon="lightning-bolt"
+          title="Templates"
+          description="Atalhos para transações frequentes"
+          onPress={() => navigation.navigate('Templates')}
         />
       </Card>
 
@@ -336,26 +330,10 @@ export function SettingsScreen({ navigation }: any) {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <MenuItem
-          icon="file-export"
-          title="Exportar Transações"
-          description="Últimos 3 meses em CSV"
-          onPress={handleExportCSV}
-        />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <MenuItem
-          icon="file-chart"
-          title="Exportar Resumo"
-          description="Resumo por categoria"
-          onPress={handleExportSummary}
-        />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <MenuItem
           icon="cloud-upload"
-          title="Backup Completo"
-          description="Exportar todos os dados"
-          onPress={handleExportBackup}
+          title="Backup e Exportação"
+          description="Exportar e fazer backup dos dados"
+          onPress={() => navigation.navigate('Backup')}
         />
       </Card>
 
@@ -425,6 +403,7 @@ export function SettingsScreen({ navigation }: any) {
         Desenvolvido com React Native + Expo
       </Text>
     </ScrollView>
+    </>
   );
 }
 

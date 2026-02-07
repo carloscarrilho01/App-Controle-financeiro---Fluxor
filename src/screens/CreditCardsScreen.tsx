@@ -147,7 +147,7 @@ export function CreditCardsScreen({ navigation }: any) {
           return (
             <TouchableOpacity
               key={card.id}
-              onPress={() => navigation.navigate('AccountDetail', { account: card })}
+              onPress={() => navigation.navigate('CreditCardDetail', { account: card })}
             >
               <Card style={styles.cardItem}>
                 <View style={styles.cardHeader}>

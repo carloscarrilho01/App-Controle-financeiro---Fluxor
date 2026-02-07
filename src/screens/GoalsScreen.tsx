@@ -8,10 +8,13 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { GoalCard, Card } from '../components';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { GoalCard, Card, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useGoals } from '../hooks/useGoals';
+import { useAchievements } from '../hooks/useAchievements';
 import { Goal, COLORS } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import { wp, hp, fs, spacing, borderRadius } from '../utils/responsive';
 
 export function GoalsScreen({ navigation }: any) {
   const {
@@ -24,6 +27,8 @@ export function GoalsScreen({ navigation }: any) {
   } = useGoals();
   const [refreshing, setRefreshing] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const { getStats: getAchievementStats } = useAchievements();
+  const achievementStats = getAchievementStats();
 
   const activeGoals = getActiveGoals();
   const completedGoals = getCompletedGoals();
@@ -67,6 +72,31 @@ export function GoalsScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TutorialTooltip tutorialKey="goals" steps={SCREEN_TUTORIALS.goals} />
+
+      {/* Achievements Banner */}
+      <TouchableOpacity
+        style={styles.achievementsBanner}
+        onPress={() => navigation.navigate('Achievements')}
+      >
+        <View style={styles.achievementsLeft}>
+          <Text style={styles.achievementsEmoji}>🏆</Text>
+          <View>
+            <Text style={styles.achievementsTitle}>Conquistas</Text>
+            <Text style={styles.achievementsSubtitle}>
+              {achievementStats.unlockedCount}/{achievementStats.totalCount} desbloqueadas
+            </Text>
+          </View>
+        </View>
+        <View style={styles.achievementsRight}>
+          <View style={styles.pointsBadge}>
+            <Text style={styles.pointsText}>{achievementStats.totalPoints}</Text>
+            <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textSecondary} />
+        </View>
+      </TouchableOpacity>
+
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
         <View style={styles.summaryRow}>
@@ -161,6 +191,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  achievementsBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: '#F59E0B30',
+  },
+  achievementsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  achievementsEmoji: {
+    fontSize: fs(28),
+  },
+  achievementsTitle: {
+    fontSize: fs(15),
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  achievementsSubtitle: {
+    fontSize: fs(12),
+    color: COLORS.textSecondary,
+    marginTop: hp(2),
+  },
+  achievementsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#F59E0B20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  pointsText: {
+    fontSize: fs(14),
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   summaryCard: {
     margin: 16,

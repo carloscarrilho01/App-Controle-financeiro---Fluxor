@@ -32,7 +32,6 @@ export function useTransactions() {
 
       if (error) throw error;
 
-      // Garantir que is_pending seja booleano
       const formattedTransactions = (data || []).map((t: any) => ({
         ...t,
         is_pending: t.is_pending === true || t.is_pending === 'true',
@@ -47,7 +46,6 @@ export function useTransactions() {
   }, [user]);
 
   useEffect(() => {
-    // Carregar transações dos últimos 3 meses por padrão
     const startDate = subMonths(new Date(), 3);
     fetchTransactions(startDate);
   }, [fetchTransactions]);
@@ -57,8 +55,23 @@ export function useTransactions() {
   ) => {
     if (!user) return { error: new Error('User not authenticated') };
 
+    // 🚀 OPTIMISTIC UPDATE - Adiciona imediatamente na interface
+    const tempId = `temp_${Date.now()}`;
+    const optimisticTransaction: Transaction = {
+      ...transaction,
+      id: tempId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Adiciona na lista ordenado por data
+    setTransactions(prev => [optimisticTransaction, ...prev].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    ));
+
     try {
-      // Criar transação
+      // Criar transação no servidor
       const { data, error } = await supabase
         .from('transactions')
         .insert({ ...transaction, user_id: user.id })
@@ -67,53 +80,40 @@ export function useTransactions() {
 
       if (error) throw error;
 
-      // Atualizar saldo da conta
+      // Atualizar saldo da conta em segundo plano (não bloqueia)
       const balanceChange = transaction.type === 'income' ? transaction.amount : -transaction.amount;
-      try {
-        await supabase.rpc('update_account_balance', {
-          account_id: transaction.account_id,
-          amount_change: balanceChange,
+      supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', transaction.account_id)
+        .single()
+        .then(({ data: acc }) => {
+          if (acc) {
+            supabase
+              .from('accounts')
+              .update({ balance: acc.balance + balanceChange })
+              .eq('id', transaction.account_id);
+          }
         });
-      } catch {
-        // Se a função RPC não existir, fazer manualmente
-        const { data: acc } = await supabase
-          .from('accounts')
-          .select('balance')
-          .eq('id', transaction.account_id)
-          .single();
-        if (acc) {
-          await supabase
-            .from('accounts')
-            .update({ balance: acc.balance + balanceChange })
-            .eq('id', transaction.account_id);
-        }
-      }
 
-      // Se for transferência, atualizar conta destino
-      if (transaction.type === 'transfer' && transaction.to_account_id) {
-        await supabase
-          .from('accounts')
-          .select('balance')
-          .eq('id', transaction.to_account_id)
-          .single()
-          .then(({ data: acc }) => {
-            if (acc) {
-              return supabase
-                .from('accounts')
-                .update({ balance: acc.balance + transaction.amount })
-                .eq('id', transaction.to_account_id);
-            }
-          });
-      }
+      // Substituir item temporário pelo real
+      setTransactions(prev => prev.map(t => t.id === tempId ? { ...data, is_pending: data.is_pending === true } : t));
 
-      setTransactions(prev => [data, ...prev]);
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK - Remove o item temporário em caso de erro
+      setTransactions(prev => prev.filter(t => t.id !== tempId));
       return { data: null, error: err as Error };
     }
   };
 
   const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    // Guarda estado anterior para rollback
+    const previousTransactions = [...transactions];
+
+    // 🚀 OPTIMISTIC UPDATE
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -123,18 +123,25 @@ export function useTransactions() {
         .single();
 
       if (error) throw error;
-      setTransactions(prev => prev.map(t => t.id === id ? data : t));
+
+      // Atualiza com dados reais do servidor
+      setTransactions(prev => prev.map(t => t.id === id ? { ...data, is_pending: data.is_pending === true } : t));
       return { data, error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setTransactions(previousTransactions);
       return { data: null, error: err as Error };
     }
   };
 
   const deleteTransaction = async (id: string) => {
-    try {
-      // Encontrar transação para reverter o saldo
-      const transaction = transactions.find(t => t.id === id);
+    const transaction = transactions.find(t => t.id === id);
+    const previousTransactions = [...transactions];
 
+    // 🚀 OPTIMISTIC UPDATE - Remove imediatamente
+    setTransactions(prev => prev.filter(t => t.id !== id));
+
+    try {
       const { error } = await supabase
         .from('transactions')
         .delete()
@@ -142,17 +149,17 @@ export function useTransactions() {
 
       if (error) throw error;
 
-      // Reverter saldo da conta
+      // Reverter saldo da conta em segundo plano
       if (transaction) {
         const balanceChange = transaction.type === 'income' ? -transaction.amount : transaction.amount;
-        await supabase
+        supabase
           .from('accounts')
           .select('balance')
           .eq('id', transaction.account_id)
           .single()
           .then(({ data: acc }) => {
             if (acc) {
-              return supabase
+              supabase
                 .from('accounts')
                 .update({ balance: acc.balance + balanceChange })
                 .eq('id', transaction.account_id);
@@ -160,9 +167,10 @@ export function useTransactions() {
           });
       }
 
-      setTransactions(prev => prev.filter(t => t.id !== id));
       return { error: null };
     } catch (err) {
+      // ❌ ROLLBACK
+      setTransactions(previousTransactions);
       return { error: err as Error };
     }
   };

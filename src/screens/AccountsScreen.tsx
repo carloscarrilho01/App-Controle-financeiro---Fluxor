@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { Card, Button } from '../components';
+import { Card, Button, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useAccounts } from '../hooks/useAccounts';
 import { Account, ACCOUNT_TYPES, COLORS } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -79,6 +79,7 @@ export function AccountsScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TutorialTooltip tutorialKey="accounts" steps={SCREEN_TUTORIALS.accounts} />
       {/* Total Balance Card */}
       <Card style={styles.totalCard}>
         <Text style={styles.totalLabel}>Patrimônio Total</Text>
