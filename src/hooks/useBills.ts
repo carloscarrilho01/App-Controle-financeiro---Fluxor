@@ -172,6 +172,33 @@ export function useBills() {
       .reduce((sum, b) => sum + b.amount, 0);
   };
 
+  // Total de contas pagas no mês atual (para somar nas despesas)
+  const getTotalPaidThisMonth = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return bills
+      .filter(b => {
+        if (!b.is_paid) return false;
+        const dueDate = new Date(b.due_date + 'T12:00:00');
+        return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+      })
+      .reduce((sum, b) => sum + b.amount, 0);
+  };
+
+  // Todas as contas do mês (pagas e pendentes)
+  const getMonthBills = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return bills.filter(b => {
+      const dueDate = new Date(b.due_date + 'T12:00:00');
+      return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+    });
+  };
+
   return {
     bills,
     loading,
@@ -185,5 +212,7 @@ export function useBills() {
     getUpcomingBills,
     getOverdueBills,
     getTotalPending,
+    getTotalPaidThisMonth,
+    getMonthBills,
   };
 }

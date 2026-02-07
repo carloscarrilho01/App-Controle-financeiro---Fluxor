@@ -34,7 +34,7 @@ export function DashboardScreen({ navigation }: any) {
     getLast6MonthsSummary,
   } = useTransactions();
   const { categories, fetchCategories } = useCategories();
-  const { getUpcomingBills, getTotalPending } = useBills();
+  const { bills, getUpcomingBills, getTotalPending, getTotalPaidThisMonth, getMonthBills, fetchBills, markAsPaid, markAsUnpaid } = useBills();
   const { debts, fetchDebts, getSummary: getDebtSummary, getUpcomingDebts } = useDebts();
   const insets = useSafeAreaInsets();
 
@@ -42,9 +42,14 @@ export function DashboardScreen({ navigation }: any) {
 
   const monthSummary = getMonthSummary();
   const upcomingBills = getUpcomingBills(7);
+  const monthBills = getMonthBills(); // Todas as contas do mês
+  const paidBillsTotal = getTotalPaidThisMonth(); // Total de contas pagas
   const debtSummary = getDebtSummary();
   const activeDebts = debts.filter(d => d.is_active);
   const upcomingDebts = getUpcomingDebts(7);
+
+  // Total de despesas incluindo contas fixas pagas
+  const totalExpenses = monthSummary.expense + paidBillsTotal;
 
   // Dados para os gráficos
   const expensesByCategory = getCategorySummary(categories, 'expense');
@@ -94,7 +99,7 @@ export function DashboardScreen({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchAccounts(), fetchTransactions(), fetchCategories(), fetchDebts()]);
+    await Promise.all([fetchAccounts(), fetchTransactions(), fetchCategories(), fetchDebts(), fetchBills()]);
     setRefreshing(false);
   };
 
@@ -135,9 +140,18 @@ export function DashboardScreen({ navigation }: any) {
             <View style={[styles.indicator, { backgroundColor: COLORS.expense }]} />
             <Text style={styles.balanceItemLabel}>Despesas do mês</Text>
             <Text style={[styles.balanceItemValue, { color: COLORS.expense }]}>
-              {formatCurrency(monthSummary.expense)}
+              {formatCurrency(totalExpenses)}
             </Text>
           </View>
+          {paidBillsTotal > 0 && (
+            <View style={styles.balanceItem}>
+              <View style={[styles.indicator, { backgroundColor: COLORS.primary }]} />
+              <Text style={styles.balanceItemLabel}>Contas fixas pagas</Text>
+              <Text style={[styles.balanceItemValue, { color: COLORS.primary }]}>
+                {formatCurrency(paidBillsTotal)}
+              </Text>
+            </View>
+          )}
           {debtSummary.totalRemaining > 0 && (
             <View style={styles.balanceItem}>
               <View style={[styles.indicator, { backgroundColor: COLORS.warning }]} />
@@ -158,8 +172,8 @@ export function DashboardScreen({ navigation }: any) {
         <QuickStat
           icon="cash-plus"
           label="Economia"
-          value={formatCurrency(Math.max(0, monthSummary.income - monthSummary.expense))}
-          change={monthSummary.income > 0 ? Math.round(((monthSummary.income - monthSummary.expense) / monthSummary.income) * 100) : 0}
+          value={formatCurrency(Math.max(0, monthSummary.income - totalExpenses))}
+          change={monthSummary.income > 0 ? Math.round(((monthSummary.income - totalExpenses) / monthSummary.income) * 100) : 0}
         />
         <View style={{ width: spacing.sm }} />
         <QuickStat
@@ -218,27 +232,41 @@ export function DashboardScreen({ navigation }: any) {
         </ScrollView>
       </View>
 
-      {/* Contas a Pagar + Dívidas vencendo */}
-      {(upcomingBills.length > 0 || upcomingDebts.length > 0) && (
+      {/* Contas Fixas do Mês */}
+      {(monthBills.length > 0 || upcomingDebts.length > 0) && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Próximos Vencimentos</Text>
+            <Text style={styles.sectionTitle}>Contas do Mês</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Commitments')}>
-              <Text style={styles.seeAll}>Ver todos</Text>
+              <Text style={styles.seeAll}>Ver todas</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.pendingAmount}>
-            {formatCurrency(getTotalPending() + upcomingDebts.reduce((sum, d) => sum + (d.monthly_payment || 0), 0))} pendente
+            {formatCurrency(getTotalPending())} pendente de {formatCurrency(monthBills.reduce((sum, b) => sum + b.amount, 0))}
           </Text>
-          {upcomingBills.slice(0, 3).map(bill => (
+          {monthBills.slice(0, 5).map(bill => (
             <TouchableOpacity
               key={bill.id}
-              style={styles.billItem}
-              onPress={() => navigation.navigate('Commitments')}
+              style={[styles.billItem, bill.is_paid && styles.billItemPaid]}
+              onPress={() => bill.is_paid ? markAsUnpaid(bill.id) : markAsPaid(bill.id)}
             >
-              <MaterialCommunityIcons name="file-document" size={18} color={COLORS.expense} style={{ marginRight: spacing.sm }} />
-              <Text style={styles.billName} numberOfLines={1}>{bill.name}</Text>
-              <Text style={styles.billAmount}>{formatCurrency(bill.amount)}</Text>
+              <TouchableOpacity
+                onPress={() => bill.is_paid ? markAsUnpaid(bill.id) : markAsPaid(bill.id)}
+                style={[styles.checkBox, bill.is_paid && styles.checkBoxChecked]}
+              >
+                {bill.is_paid && (
+                  <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+              <Text style={[styles.billName, bill.is_paid && styles.billNamePaid]} numberOfLines={1}>
+                {bill.name}
+              </Text>
+              <Text style={[styles.billDueDate, bill.is_paid && styles.billNamePaid]}>
+                {new Date(bill.due_date + 'T12:00:00').getDate().toString().padStart(2, '0')}/{(new Date(bill.due_date + 'T12:00:00').getMonth() + 1).toString().padStart(2, '0')}
+              </Text>
+              <Text style={[styles.billAmount, bill.is_paid && styles.billAmountPaid]}>
+                {formatCurrency(bill.amount)}
+              </Text>
             </TouchableOpacity>
           ))}
           {upcomingDebts.slice(0, 3).map(debt => (
@@ -477,6 +505,25 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
   },
+  billItemPaid: {
+    backgroundColor: `${COLORS.success}10`,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.success,
+  },
+  checkBox: {
+    width: wp(22),
+    height: wp(22),
+    borderRadius: wp(11),
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    marginRight: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkBoxChecked: {
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
+  },
   billName: {
     flex: 1,
     fontSize: fs(15),
@@ -484,15 +531,28 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginRight: spacing.sm,
   },
+  billNamePaid: {
+    color: COLORS.textSecondary,
+    textDecorationLine: 'line-through',
+  },
+  billDueDate: {
+    fontSize: fs(12),
+    color: COLORS.textSecondary,
+    marginRight: spacing.sm,
+  },
   billAmount: {
     fontSize: fs(15),
     color: COLORS.expense,
     fontWeight: '600',
   },
+  billAmountPaid: {
+    color: COLORS.success,
+  },
   pendingAmount: {
     fontSize: fs(13),
     color: COLORS.expense,
     fontWeight: '500',
+    marginBottom: spacing.sm,
   },
   emptyText: {
     textAlign: 'center',
