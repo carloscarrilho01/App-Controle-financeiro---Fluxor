@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,11 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card, TransactionItem, AccountCard, TutorialTooltip, SCREEN_TUTORIALS, MiniPieChart, MiniBarChart, HealthScore, QuickStat } from '../components';
+import { Card, TransactionItem, AccountCard, TutorialTooltip, SCREEN_TUTORIALS, MiniPieChart, MiniBarChart, HealthScore, QuickStat, AnimatedCard, AnimatedCounter } from '../components';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccounts } from '../hooks/useAccounts';
 import { useTransactions } from '../hooks/useTransactions';
@@ -114,11 +115,14 @@ export function DashboardScreen({ navigation }: any) {
       </View>
 
       {/* Saldo Total */}
-      <Card style={styles.balanceCard}>
+      <AnimatedCard style={styles.balanceCard} animationType="slideUp" delay={100}>
         <Text style={styles.balanceLabel}>Saldo Total</Text>
-        <Text style={styles.balanceValue} adjustsFontSizeToFit numberOfLines={1}>
-          {formatCurrency(getTotalBalance())}
-        </Text>
+        <AnimatedCounter
+          value={getTotalBalance()}
+          duration={1200}
+          formatter={(v) => formatCurrency(v)}
+          textStyle={styles.balanceValue}
+        />
         <View style={styles.balanceDetails}>
           <View style={styles.balanceItem}>
             <View style={[styles.indicator, { backgroundColor: COLORS.income }]} />
@@ -144,7 +148,7 @@ export function DashboardScreen({ navigation }: any) {
             </View>
           )}
         </View>
-      </Card>
+      </AnimatedCard>
 
       {/* Score de Saúde Financeira */}
       <HealthScore score={healthScore} />
@@ -152,20 +156,20 @@ export function DashboardScreen({ navigation }: any) {
       {/* Estatísticas Rápidas */}
       <View style={styles.quickStatsRow}>
         <QuickStat
-          icon="💰"
+          icon="cash-plus"
           label="Economia"
           value={formatCurrency(Math.max(0, monthSummary.income - monthSummary.expense))}
           change={monthSummary.income > 0 ? Math.round(((monthSummary.income - monthSummary.expense) / monthSummary.income) * 100) : 0}
         />
         <View style={{ width: spacing.sm }} />
         <QuickStat
-          icon="📊"
+          icon="chart-bar"
           label="Transações"
           value={transactions.length.toString()}
         />
         <View style={{ width: spacing.sm }} />
         <QuickStat
-          icon="🎯"
+          icon="target"
           label="Metas"
           value={`${accounts.length}`}
         />

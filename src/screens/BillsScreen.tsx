@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BillItem, Card, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useBills } from '../hooks/useBills';
 import { useCategories } from '../hooks/useCategories';
@@ -139,9 +140,12 @@ export function BillsScreen({ navigation }: any) {
       {/* Overdue Alert */}
       {filter === 'pending' && overdueBills.length > 0 && (
         <View style={styles.alertCard}>
-          <Text style={styles.alertText}>
-            ⚠️ Você tem {overdueBills.length} conta(s) atrasada(s)
-          </Text>
+          <View style={styles.alertContent}>
+            <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.danger} />
+            <Text style={styles.alertText}>
+              Você tem {overdueBills.length} conta(s) atrasada(s)
+            </Text>
+          </View>
         </View>
       )}
 
@@ -241,6 +245,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.danger,
+  },
+  alertContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   alertText: {
     fontSize: 14,

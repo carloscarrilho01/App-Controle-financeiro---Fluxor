@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../types';
 import { wp, hp, fs, spacing, borderRadius } from '../utils/responsive';
 import { formatCurrency } from '../utils/formatters';
@@ -258,11 +259,11 @@ export function HealthScore({ score, label = 'Saúde Financeira' }: HealthScoreP
     return 'Atenção';
   };
 
-  const getScoreEmoji = () => {
-    if (score >= 80) return '🌟';
-    if (score >= 60) return '😊';
-    if (score >= 40) return '😐';
-    return '😟';
+  const getScoreIcon = (): string => {
+    if (score >= 80) return 'star-circle';
+    if (score >= 60) return 'emoticon-happy';
+    if (score >= 40) return 'emoticon-neutral';
+    return 'emoticon-sad';
   };
 
   const circumference = 2 * Math.PI * 40;
@@ -288,7 +289,12 @@ export function HealthScore({ score, label = 'Saúde Financeira' }: HealthScoreP
             ]}
           />
           <View style={styles.healthCircleInner}>
-            <Text style={styles.healthEmoji}>{getScoreEmoji()}</Text>
+            <MaterialCommunityIcons
+              name={getScoreIcon() as any}
+              size={28}
+              color={getScoreColor()}
+              style={styles.healthIcon}
+            />
             <Text style={[styles.healthScoreValue, { color: getScoreColor() }]}>{score}</Text>
           </View>
         </View>
@@ -322,7 +328,7 @@ export function QuickStat({ icon, label, value, change, color = COLORS.primary }
   return (
     <View style={styles.quickStatCard}>
       <View style={[styles.quickStatIcon, { backgroundColor: `${color}15` }]}>
-        <Text style={{ fontSize: fs(20) }}>{icon}</Text>
+        <MaterialCommunityIcons name={icon as any} size={fs(20)} color={color} />
       </View>
       <Text style={styles.quickStatLabel}>{label}</Text>
       <Text style={styles.quickStatValue}>{value}</Text>
@@ -513,8 +519,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  healthEmoji: {
-    fontSize: fs(20),
+  healthIcon: {
+    marginBottom: 2,
   },
   healthScoreValue: {
     fontSize: fs(20),

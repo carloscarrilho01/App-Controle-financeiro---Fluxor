@@ -80,7 +80,9 @@ export function GoalsScreen({ navigation }: any) {
         onPress={() => navigation.navigate('Achievements')}
       >
         <View style={styles.achievementsLeft}>
-          <Text style={styles.achievementsEmoji}>🏆</Text>
+          <View style={styles.trophyIcon}>
+            <MaterialCommunityIcons name="trophy" size={24} color="#FFFFFF" />
+          </View>
           <View>
             <Text style={styles.achievementsTitle}>Conquistas</Text>
             <Text style={styles.achievementsSubtitle}>
@@ -209,8 +211,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  achievementsEmoji: {
-    fontSize: fs(28),
+  trophyIcon: {
+    width: wp(44),
+    height: wp(44),
+    borderRadius: wp(22),
+    backgroundColor: '#F59E0B',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   achievementsTitle: {
     fontSize: fs(15),

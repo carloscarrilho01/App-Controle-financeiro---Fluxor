@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button, Input, Card } from '../components';
 import { useGoals } from '../hooks/useGoals';
 import { COLORS } from '../types';
@@ -135,7 +136,7 @@ export function AddGoalScreen({ navigation, route }: any) {
             ]}
             onPress={() => setColor(c)}
           >
-            {color === c && <Text style={styles.checkmark}>✓</Text>}
+            {color === c && <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />}
           </TouchableOpacity>
         ))}
       </View>

@@ -325,7 +325,7 @@ export function useNotifications() {
 
       const identifier = await ExpoNotifications.scheduleNotificationAsync({
         content: {
-          title: '💳 Conta a Vencer',
+          title: 'Conta a Vencer',
           body: `${billName} vence em ${daysBefore} dias - R$ ${amount.toFixed(2)}`,
           data: { type: 'bill', billId },
         },
@@ -384,13 +384,13 @@ export function useNotifications() {
     let body = '';
 
     if (percentUsed >= 100) {
-      title = '🚨 Limite Excedido!';
+      title = 'Limite Excedido!';
       body = `Você ultrapassou o limite de ${categoryName}: R$ ${spent.toFixed(2)} / R$ ${limit.toFixed(2)}`;
     } else if (percentUsed >= 90) {
-      title = '⚠️ Quase no Limite';
+      title = 'Quase no Limite';
       body = `${categoryName} está em ${percentUsed.toFixed(0)}% do limite`;
     } else if (percentUsed >= 75) {
-      title = '📊 Atenção com Gastos';
+      title = 'Atenção com Gastos';
       body = `${categoryName} já usou ${percentUsed.toFixed(0)}% do limite mensal`;
     }
 
@@ -413,13 +413,13 @@ export function useNotifications() {
     let body = '';
 
     if (progress >= 100) {
-      title = '🎉 Meta Alcançada!';
+      title = 'Meta Alcançada!';
       body = `Parabéns! Você completou a meta "${goalName}"!`;
     } else if (progress >= 75) {
-      title = '🚀 Quase Lá!';
+      title = 'Quase Lá!';
       body = `Você está em ${progress.toFixed(0)}% da meta "${goalName}"`;
     } else if (progress >= 50) {
-      title = '💪 Metade do Caminho!';
+      title = 'Metade do Caminho!';
       body = `"${goalName}" já está em 50%! Continue assim!`;
     }
 

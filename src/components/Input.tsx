@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../types';
 import { wp, hp, fs, borderRadius, spacing } from '../utils/responsive';
 
@@ -81,8 +82,12 @@ export function Input({
         />
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
         {secureTextEntry && (
-          <TouchableOpacity onPress={() => setIsSecure(!isSecure)}>
-            <Text style={styles.toggleSecure}>{isSecure ? '👁️' : '🙈'}</Text>
+          <TouchableOpacity onPress={() => setIsSecure(!isSecure)} style={styles.toggleSecure}>
+            <MaterialCommunityIcons
+              name={isSecure ? 'eye' : 'eye-off'}
+              size={22}
+              color={COLORS.textSecondary}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -138,7 +143,6 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   toggleSecure: {
-    fontSize: fs(20),
     padding: wp(4),
   },
   errorText: {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Account, ACCOUNT_TYPES, COLORS } from '../types';
 import { formatCurrency, getIconName } from '../utils/formatters';
@@ -14,13 +14,38 @@ export function AccountCard({ account, onPress }: AccountCardProps) {
   const accountType = ACCOUNT_TYPES[account.type];
   const isNegative = account.balance < 0 || account.type === 'credit_card';
   const iconName = getIconName(account.icon, accountType.icon);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 40,
+    }).start();
+  };
 
   return (
     <TouchableOpacity
-      style={[styles.container, { borderLeftColor: account.color }]}
       onPress={onPress}
-      activeOpacity={0.8}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
     >
+      <Animated.View
+        style={[
+          styles.container,
+          { borderLeftColor: account.color, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
       <View style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: `${account.color}20` }]}>
           <MaterialCommunityIcons
@@ -45,6 +70,7 @@ export function AccountCard({ account, onPress }: AccountCardProps) {
       >
         {formatCurrency(account.balance)}
       </Text>
+      </Animated.View>
     </TouchableOpacity>
   );
 }

@@ -10,3 +10,13 @@ export { OnboardingTutorial } from './OnboardingTutorial';
 export { TutorialTooltip, SCREEN_TUTORIALS } from './TutorialTooltip';
 export { MiniPieChart, MiniBarChart, HealthScore, QuickStat } from './Charts';
 export { SwipeableItem } from './SwipeableItem';
+export {
+  AnimatedCard,
+  AnimatedListItem,
+  PulseAnimation,
+  ShakeAnimation,
+  BounceButton,
+  AnimatedProgress,
+  AnimatedCounter,
+} from './AnimatedCard';
+export { AnimatedFAB } from './AnimatedFAB';

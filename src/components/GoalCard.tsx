@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Goal, COLORS } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { wp, hp, fs, borderRadius, spacing } from '../utils/responsive';
@@ -14,12 +14,43 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
   const isCompleted = goal.current_amount >= goal.target_amount;
   const remaining = goal.target_amount - goal.current_amount;
 
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 800,
+      delay: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 40,
+    }).start();
+  };
+
   return (
     <TouchableOpacity
-      style={styles.container}
       onPress={onPress}
-      activeOpacity={0.8}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
     >
+      <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
       <View style={styles.header}>
         <View style={[styles.colorDot, { backgroundColor: goal.color }]} />
         <Text style={styles.name} numberOfLines={1}>{goal.name}</Text>
@@ -33,11 +64,14 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
 
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
-          <View
+          <Animated.View
             style={[
               styles.progressFill,
               {
-                width: `${progress}%`,
+                width: progressAnim.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '100%'],
+                }),
                 backgroundColor: isCompleted ? COLORS.success : goal.color,
               },
             ]}
@@ -54,6 +88,7 @@ export function GoalCard({ goal, onPress }: GoalCardProps) {
           <Text style={styles.remaining}>Faltam {formatCurrency(remaining)}</Text>
         )}
       </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 }

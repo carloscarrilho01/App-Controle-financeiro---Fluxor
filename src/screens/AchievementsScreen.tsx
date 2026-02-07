@@ -87,7 +87,11 @@ export function AchievementsScreen({ navigation }: any) {
                 opacity: isLocked ? 0.5 : 1,
               },
             ]}>
-              <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
+              <MaterialCommunityIcons
+                name={achievement.icon as any}
+                size={28}
+                color="#FFFFFF"
+              />
             </View>
             <View style={styles.achievementInfo}>
               <Text style={[styles.achievementTitle, isLocked && styles.lockedText]}>
@@ -193,7 +197,13 @@ export function AchievementsScreen({ navigation }: any) {
                     style={[styles.upcomingCard, { borderColor: categoryInfo.color }]}
                     onPress={() => setSelectedAchievement(achievement)}
                   >
-                    <Text style={styles.upcomingEmoji}>{achievement.icon}</Text>
+                    <View style={[styles.upcomingIcon, { backgroundColor: categoryInfo.color }]}>
+                      <MaterialCommunityIcons
+                        name={achievement.icon as any}
+                        size={24}
+                        color="#FFFFFF"
+                      />
+                    </View>
                     <Text style={styles.upcomingTitle} numberOfLines={1}>
                       {achievement.title}
                     </Text>
@@ -336,12 +346,20 @@ export function AchievementsScreen({ navigation }: any) {
         >
           {newlyUnlocked && (
             <View style={styles.newAchievementModal}>
-              <Text style={styles.newAchievementCongrats}>🎉 Parabéns! 🎉</Text>
+              <View style={styles.congratsRow}>
+                <MaterialCommunityIcons name="party-popper" size={28} color="#F59E0B" />
+                <Text style={styles.newAchievementCongrats}>Parabéns!</Text>
+                <MaterialCommunityIcons name="party-popper" size={28} color="#F59E0B" />
+              </View>
               <View style={[
                 styles.newAchievementIcon,
                 { backgroundColor: CATEGORY_LABELS[newlyUnlocked.category].color },
               ]}>
-                <Text style={styles.newAchievementEmoji}>{newlyUnlocked.icon}</Text>
+                <MaterialCommunityIcons
+                  name={newlyUnlocked.icon as any}
+                  size={48}
+                  color="#FFFFFF"
+                />
               </View>
               <Text style={styles.newAchievementTitle}>{newlyUnlocked.title}</Text>
               <Text style={styles.newAchievementDesc}>{newlyUnlocked.description}</Text>
@@ -450,8 +468,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
   },
-  upcomingEmoji: {
-    fontSize: fs(32),
+  upcomingIcon: {
+    width: wp(48),
+    height: wp(48),
+    borderRadius: wp(24),
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: spacing.sm,
   },
   upcomingTitle: {
@@ -505,9 +527,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  achievementEmoji: {
-    fontSize: fs(24),
   },
   achievementInfo: {
     flex: 1,
@@ -649,9 +668,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: spacing.lg,
   },
+  congratsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
   newAchievementCongrats: {
     fontSize: fs(24),
-    marginBottom: spacing.lg,
+    fontWeight: '700',
+    color: COLORS.text,
   },
   newAchievementIcon: {
     width: wp(100),
@@ -660,9 +686,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
-  },
-  newAchievementEmoji: {
-    fontSize: fs(50),
   },
   newAchievementTitle: {
     fontSize: fs(22),

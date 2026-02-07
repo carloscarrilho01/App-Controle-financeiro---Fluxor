@@ -43,7 +43,7 @@ CREATE TABLE accounts (
   type TEXT NOT NULL CHECK (type IN ('checking', 'savings', 'credit_card', 'cash', 'investment')),
   balance DECIMAL(15,2) DEFAULT 0,
   color TEXT DEFAULT '#6366F1',
-  icon TEXT DEFAULT '🏦',
+  icon TEXT DEFAULT 'bank',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
@@ -54,7 +54,7 @@ CREATE TABLE categories (
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-  icon TEXT DEFAULT '📦',
+  icon TEXT DEFAULT 'package-variant',
   color TEXT DEFAULT '#6366F1',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

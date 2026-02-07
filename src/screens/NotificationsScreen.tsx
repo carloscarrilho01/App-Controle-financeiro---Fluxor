@@ -49,7 +49,7 @@ export function NotificationsScreen({ navigation }: any) {
 
   const handleTestNotification = async () => {
     await sendInstantPush(
-      '🔔 Teste de Notificação',
+      'Teste de Notificação',
       'Esta é uma notificação de teste do seu app financeiro!'
     );
     Alert.alert('Sucesso', 'Notificação de teste enviada!');
