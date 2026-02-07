@@ -13,6 +13,7 @@ import { useDebts } from '../hooks/useDebts';
 import { Card, Button, Input } from '../components';
 import { Debt, DEBT_TYPES } from '../types';
 import { format, addMonths, differenceInMonths } from 'date-fns';
+import { toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
 
 export function AddDebtScreen({ navigation, route }: any) {
   const { colors } = useTheme();
@@ -31,9 +32,9 @@ export function AddDebtScreen({ navigation, route }: any) {
   const [minimumPayment, setMinimumPayment] = useState(editingDebt?.monthly_payment?.toString() || '');
   const [dueDay, setDueDay] = useState(editingDebt?.due_day?.toString() || '');
   const [startDate, setStartDate] = useState(
-    editingDebt?.start_date || format(new Date(), 'yyyy-MM-dd')
+    toBrazilianDate(editingDebt?.start_date || format(new Date(), 'yyyy-MM-dd'))
   );
-  const [endDate, setEndDate] = useState(editingDebt?.end_date || '');
+  const [endDate, setEndDate] = useState(editingDebt?.end_date ? toBrazilianDate(editingDebt.end_date) : '');
   const [notes, setNotes] = useState(editingDebt?.notes || '');
   const [loading, setLoading] = useState(false);
 
@@ -61,8 +62,8 @@ export function AddDebtScreen({ navigation, route }: any) {
         interest_rate: interestRate ? parseFloat(interestRate) : 0,
         monthly_payment: minimumPayment ? parseFloat(minimumPayment) : 0,
         due_day: dueDay ? parseInt(dueDay) : undefined,
-        start_date: startDate,
-        end_date: endDate || undefined,
+        start_date: parseBrazilianDate(startDate),
+        end_date: endDate ? parseBrazilianDate(endDate) : undefined,
         notes: notes.trim() || undefined,
         is_active: true,
         paid_installments: editingDebt?.paid_installments || 0,
@@ -322,14 +323,14 @@ export function AddDebtScreen({ navigation, route }: any) {
         label="Data de Início"
         value={startDate}
         onChangeText={setStartDate}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
 
       <Input
         label="Data de Término Prevista (opcional)"
         value={endDate}
         onChangeText={setEndDate}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
 
       {/* Notes */}

@@ -12,7 +12,7 @@ import { Button, Input, Card } from '../components';
 import { useGoals } from '../hooks/useGoals';
 import { COLORS } from '../types';
 import { format, addMonths } from 'date-fns';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
 
 const COLORS_LIST = [
   '#6366F1', '#8B5CF6', '#EC4899', '#EF4444', '#F97316',
@@ -31,7 +31,7 @@ export function AddGoalScreen({ navigation, route }: any) {
     editingGoal?.current_amount?.toString() || '0'
   );
   const [deadline, setDeadline] = useState(
-    editingGoal?.deadline || format(addMonths(new Date(), 6), 'yyyy-MM-dd')
+    toBrazilianDate(editingGoal?.deadline || format(addMonths(new Date(), 6), 'yyyy-MM-dd'))
   );
   const [color, setColor] = useState(editingGoal?.color || COLORS_LIST[0]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,7 @@ export function AddGoalScreen({ navigation, route }: any) {
       name: name.trim(),
       target_amount: parseFloat(targetAmount),
       current_amount: parseFloat(currentAmount) || 0,
-      deadline,
+      deadline: parseBrazilianDate(deadline),
       color,
     };
 
@@ -120,7 +120,7 @@ export function AddGoalScreen({ navigation, route }: any) {
         label="Data Limite"
         value={deadline}
         onChangeText={setDeadline}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
 
       {/* Color */}

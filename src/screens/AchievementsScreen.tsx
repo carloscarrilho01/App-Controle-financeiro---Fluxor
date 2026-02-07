@@ -292,7 +292,11 @@ export function AchievementsScreen({ navigation }: any) {
                 styles.modalIcon,
                 { backgroundColor: CATEGORY_LABELS[selectedAchievement.category].color },
               ]}>
-                <Text style={styles.modalEmoji}>{selectedAchievement.icon}</Text>
+                <MaterialCommunityIcons
+                  name={selectedAchievement.icon as any}
+                  size={40}
+                  color="#FFFFFF"
+                />
               </View>
               <Text style={styles.modalTitle}>{selectedAchievement.title}</Text>
               <Text style={styles.modalDesc}>{selectedAchievement.description}</Text>

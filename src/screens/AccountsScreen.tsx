@@ -8,10 +8,11 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Card, Button, TutorialTooltip, SCREEN_TUTORIALS } from '../components';
 import { useAccounts } from '../hooks/useAccounts';
 import { Account, ACCOUNT_TYPES, COLORS } from '../types';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, getIconName } from '../utils/formatters';
 
 export function AccountsScreen({ navigation }: any) {
   const { accounts, loading, fetchAccounts, deleteAccount, getTotalBalance } = useAccounts();
@@ -46,6 +47,7 @@ export function AccountsScreen({ navigation }: any) {
   const renderAccount = ({ item }: { item: Account }) => {
     const accountType = ACCOUNT_TYPES[item.type];
     const isNegative = item.balance < 0 || item.type === 'credit_card';
+    const iconName = getIconName(item.icon, accountType.icon);
 
     return (
       <TouchableOpacity
@@ -56,7 +58,7 @@ export function AccountsScreen({ navigation }: any) {
       >
         <View style={styles.accountHeader}>
           <View style={[styles.iconContainer, { backgroundColor: `${item.color}20` }]}>
-            <Text style={styles.accountIcon}>{item.icon || accountType.icon}</Text>
+            <MaterialCommunityIcons name={iconName as any} size={24} color={item.color} />
           </View>
           <View style={styles.accountInfo}>
             <Text style={styles.accountName}>{item.name}</Text>
@@ -182,9 +184,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  accountIcon: {
-    fontSize: 24,
   },
   accountInfo: {
     flex: 1,

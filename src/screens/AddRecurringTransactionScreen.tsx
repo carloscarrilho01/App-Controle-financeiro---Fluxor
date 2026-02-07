@@ -16,6 +16,7 @@ import { useAccounts } from '../hooks/useAccounts';
 import { Card, Button, Input } from '../components';
 import { RecurringTransaction, FREQUENCIES } from '../types';
 import { format } from 'date-fns';
+import { toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
 
 export function AddRecurringTransactionScreen({ navigation, route }: any) {
   const { colors } = useTheme();
@@ -34,9 +35,11 @@ export function AddRecurringTransactionScreen({ navigation, route }: any) {
     editingTransaction?.frequency || 'monthly'
   );
   const [startDate, setStartDate] = useState(
-    editingTransaction?.start_date || format(new Date(), 'yyyy-MM-dd')
+    toBrazilianDate(editingTransaction?.start_date || format(new Date(), 'yyyy-MM-dd'))
   );
-  const [endDate, setEndDate] = useState(editingTransaction?.end_date || '');
+  const [endDate, setEndDate] = useState(
+    editingTransaction?.end_date ? toBrazilianDate(editingTransaction.end_date) : ''
+  );
   const [autoCreate, setAutoCreate] = useState(editingTransaction?.auto_create ?? true);
   const [loading, setLoading] = useState(false);
 
@@ -77,8 +80,8 @@ export function AddRecurringTransactionScreen({ navigation, route }: any) {
         category_id: categoryId,
         account_id: accountId,
         frequency,
-        start_date: startDate,
-        end_date: endDate || undefined,
+        start_date: parseBrazilianDate(startDate),
+        end_date: endDate ? parseBrazilianDate(endDate) : undefined,
         is_active: true,
         auto_create: autoCreate,
       };
@@ -258,14 +261,14 @@ export function AddRecurringTransactionScreen({ navigation, route }: any) {
         label="Data de Início"
         value={startDate}
         onChangeText={setStartDate}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
 
       <Input
         label="Data de Término (opcional)"
         value={endDate}
         onChangeText={setEndDate}
-        placeholder="YYYY-MM-DD ou deixe vazio"
+        placeholder="DD/MM/AAAA ou deixe vazio"
       />
 
       {/* Auto Create Toggle */}

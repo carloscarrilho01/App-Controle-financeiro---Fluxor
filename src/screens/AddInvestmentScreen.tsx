@@ -14,6 +14,7 @@ import { useAccounts } from '../hooks/useAccounts';
 import { Card, Button, Input } from '../components';
 import { Investment, INVESTMENT_TYPES } from '../types';
 import { format } from 'date-fns';
+import { toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
 
 export function AddInvestmentScreen({ navigation, route }: any) {
   const { colors } = useTheme();
@@ -32,7 +33,7 @@ export function AddInvestmentScreen({ navigation, route }: any) {
   const [currentPrice, setCurrentPrice] = useState(editingInvestment?.current_price?.toString() || '');
   const [accountId, setAccountId] = useState(editingInvestment?.account_id || '');
   const [purchaseDate, setPurchaseDate] = useState(
-    editingInvestment?.purchase_date || format(new Date(), 'yyyy-MM-dd')
+    toBrazilianDate(editingInvestment?.purchase_date || format(new Date(), 'yyyy-MM-dd'))
   );
   const [notes, setNotes] = useState(editingInvestment?.notes || '');
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,7 @@ export function AddInvestmentScreen({ navigation, route }: any) {
         average_price: parseFloat(averagePrice),
         current_price: currentPrice ? parseFloat(currentPrice) : parseFloat(averagePrice),
         account_id: accountId || undefined,
-        purchase_date: purchaseDate,
+        purchase_date: parseBrazilianDate(purchaseDate),
         notes: notes.trim() || undefined,
         is_active: true,
       };
@@ -269,7 +270,7 @@ export function AddInvestmentScreen({ navigation, route }: any) {
         label="Data da Compra"
         value={purchaseDate}
         onChangeText={setPurchaseDate}
-        placeholder="YYYY-MM-DD"
+        placeholder="DD/MM/AAAA"
       />
 
       {/* Notes */}
