@@ -15,6 +15,7 @@ import { useCategories } from '../hooks/useCategories';
 import { Card, Button, Input } from '../components';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { spacing } from '../utils/responsive';
 
 export function BudgetsScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -422,7 +423,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     alertCard: {
       padding: 16,

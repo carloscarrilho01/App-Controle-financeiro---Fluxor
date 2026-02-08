@@ -107,6 +107,12 @@ export const screen = {
 };
 
 /**
+ * Padding inferior seguro para Android (barra de navegação)
+ * No Android, a barra de navegação (voltar, home, apps) pode cobrir o conteúdo
+ */
+export const SAFE_BOTTOM_PADDING = Platform.OS === 'android' ? hp(48) : hp(20);
+
+/**
  * Espacamentos responsivos predefinidos
  */
 export const spacing = {
@@ -116,6 +122,7 @@ export const spacing = {
   lg: wp(16),
   xl: wp(20),
   xxl: wp(24),
+  bottomSafe: SAFE_BOTTOM_PADDING,
 };
 
 /**

@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: hp(40),
+    paddingBottom: spacing.bottomSafe,
   },
   typeContainer: {
     flexDirection: 'row',

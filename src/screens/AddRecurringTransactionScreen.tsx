@@ -17,6 +17,7 @@ import { Card, Button, Input } from '../components';
 import { RecurringTransaction, FREQUENCIES } from '../types';
 import { format } from 'date-fns';
 import { toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
+import { spacing } from '../utils/responsive';
 
 export function AddRecurringTransactionScreen({ navigation, route }: any) {
   const { colors } = useTheme();
@@ -309,7 +310,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     typeSelector: {
       flexDirection: 'row',

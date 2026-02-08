@@ -14,6 +14,7 @@ import { useAccounts } from '../hooks/useAccounts';
 import { Card, Button } from '../components';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { spacing } from '../utils/responsive';
 
 export function CreditCardsScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -302,7 +303,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     summaryCard: {
       padding: 16,

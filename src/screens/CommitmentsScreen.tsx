@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     padding: spacing.xl,
-    paddingBottom: hp(40),
+    paddingBottom: spacing.bottomSafe,
   },
   modalTitle: {
     fontSize: fs(18),

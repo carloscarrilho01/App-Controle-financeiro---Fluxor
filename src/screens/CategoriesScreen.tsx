@@ -15,6 +15,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useCategories } from '../hooks/useCategories';
 import { Card, Button, Input } from '../components';
 import { Category } from '../types';
+import { spacing } from '../utils/responsive';
 
 const CATEGORY_ICONS = [
   'home', 'food', 'car', 'bus', 'medical-bag', 'school', 'shopping',
@@ -608,7 +609,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     tabs: {
       flexDirection: 'row',

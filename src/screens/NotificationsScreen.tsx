@@ -15,6 +15,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { Card, Button } from '../components';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { spacing } from '../utils/responsive';
 
 type NotificationType = 'bill_due' | 'budget_alert' | 'goal_reached' | 'recurring' | 'system';
 
@@ -453,7 +454,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     headerActions: {
       flexDirection: 'row',

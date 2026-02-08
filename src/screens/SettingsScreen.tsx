@@ -20,6 +20,7 @@ import { useGoals } from '../hooks/useGoals';
 import { useNotifications } from '../hooks/useNotifications';
 import { exportToCSV, exportSummaryToCSV, exportBackup } from '../utils/exportData';
 import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { spacing } from '../utils/responsive';
 
 export function SettingsScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
@@ -414,7 +415,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     profileCard: {
       alignItems: 'center',

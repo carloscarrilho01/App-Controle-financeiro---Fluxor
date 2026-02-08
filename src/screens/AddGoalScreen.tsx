@@ -13,6 +13,7 @@ import { useGoals } from '../hooks/useGoals';
 import { COLORS } from '../types';
 import { format, addMonths } from 'date-fns';
 import { formatCurrency, toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
+import { spacing } from '../utils/responsive';
 
 const COLORS_LIST = [
   '#6366F1', '#8B5CF6', '#EC4899', '#EF4444', '#F97316',
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: spacing.bottomSafe,
   },
   sectionLabel: {
     fontSize: 14,

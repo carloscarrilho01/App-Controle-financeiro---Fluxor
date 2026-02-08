@@ -14,6 +14,7 @@ import { Card, Button, Input } from '../components';
 import { Debt, DEBT_TYPES } from '../types';
 import { format, addMonths, differenceInMonths } from 'date-fns';
 import { toBrazilianDate, parseBrazilianDate } from '../utils/formatters';
+import { spacing } from '../utils/responsive';
 
 export function AddDebtScreen({ navigation, route }: any) {
   const { colors } = useTheme();
@@ -361,7 +362,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     label: {
       fontSize: 14,

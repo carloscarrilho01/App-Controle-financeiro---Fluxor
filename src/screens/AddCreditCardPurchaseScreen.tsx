@@ -16,6 +16,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useCreditCards } from '../hooks/useCreditCards';
 import { Card, Button, Input } from '../components';
 import { formatCurrency, toBrazilianDate, parseBrazilianDate, getIconName } from '../utils/formatters';
+import { spacing } from '../utils/responsive';
 import { format } from 'date-fns';
 import { Account } from '../types';
 
@@ -305,7 +306,7 @@ const createStyles = (colors: any) =>
     },
     content: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: spacing.bottomSafe,
     },
     cardInfo: {
       flexDirection: 'row',

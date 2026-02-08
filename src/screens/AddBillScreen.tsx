@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: hp(40),
+    paddingBottom: spacing.bottomSafe,
   },
   scanButton: {
     flexDirection: 'row',
